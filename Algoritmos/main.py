@@ -104,6 +104,22 @@ class TeamFormation:
         return (team, creado_por_usuario)
     
 
+    # Tengo que ver todavia como evalua si el equipo es el adecuado, tendre que crear funciones para el calculo
+    # Necesito el vector de Preferencias (Exel)
+    def evaluarEquipo(self, equipo: tuple) -> tuple:
+        
+
+        score  = (
+
+        )
+
+        return score,
+
 
     def configDeap(self):
+        # Funcion que crea a un individuo
         self.toolbox.register("individual", tools.initIterate, creator.Individual, self.crearIndividuo)
+        # Funcion que crea a la poblacion
+        self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
+        # Funcion que evalua al equipo, basicamente el calculador del score o fitness
+        self.toolbox.register("evaluate", self.evaluarEquipo)
