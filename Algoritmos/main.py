@@ -90,7 +90,7 @@ class TeamFormation:
         equipos_validos = [
             equipo for equipo in self.Equipos 
             if self.id_Usuario not in equipo and len(equipo) >= 1 and len(equipo) < MAX_NUM_PARTNERS
-        ]
+        ] 
     
         # Si no he encontrado ningun equipo valido devuelvo el Usuario que crea su propio equipo y esta el solo
         if not equipos_validos:
@@ -105,7 +105,7 @@ class TeamFormation:
     
 
     # Tengo que ver todavia como evalua si el equipo es el adecuado, tendre que crear funciones para el calculo
-    # Necesito el vector de Preferencias (Exel)
+    # Necesito el vector de Preferencias (Exel), ver lo importante o no
     def evaluarEquipo(self, equipo: tuple) -> tuple:
         
 
