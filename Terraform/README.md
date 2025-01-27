@@ -28,14 +28,14 @@ This script runs when the Docker container starts. It automates the process of i
         In the root directory of the project, build the Docker image 
         with the following command:
         
-        docker build -t terraform-mongodb .
+        sudo docker build -t terraform-mongo .
 
     #### Run the Container:
 
         Once the image is built, run the container to apply the     
         Terraform configuration:
 
-        docker run terraform-mongodb
+        sudo docker run terraform-mongo
 
         This command will run the process inside the Docker container, 
         automatically applying the configurations to MongoDB Atlas.
