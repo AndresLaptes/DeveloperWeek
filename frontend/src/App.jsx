@@ -6,7 +6,7 @@ import Teams from "./pages/Teams";
 import Profile from "./pages/Profile";
 import "./App.css";
 const Home = () => {
-  return <div>Home Page</div>;
+  return <div>Home Page!</div>;
 };
 
 const About = () => {
