@@ -1,0 +1,17 @@
+.floatingCard {
+    padding: 10px;
+    border-radius: 8px;
+    width: 250px;
+    height: 125px;
+    min-width: 50px;
+    min-height: 25px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+}
+
+p {
+    font-size: 1.3rem;
+}

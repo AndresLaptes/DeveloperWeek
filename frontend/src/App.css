@@ -22,7 +22,6 @@
 .main-content {
   grid-area: content;
   width: 100%;
-  padding-top: 2rem;
   height: 100%;
 }
 

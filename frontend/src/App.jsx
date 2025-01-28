@@ -4,10 +4,9 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Teams from "./pages/Teams";
 import Profile from "./pages/Profile";
+import Home from "./pages/Home";
 import "./App.css";
-const Home = () => {
-  return <div>Home Page!</div>;
-};
+
 
 const About = () => {
   return <div>About Page</div>;
