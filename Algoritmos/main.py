@@ -47,12 +47,17 @@ class TeamFormation:
     # id_Usuario -> el usuario que busca equipo
     # X_Equipos -> el número de equipos que hay que buscar
     # Participantes -> los participantes del evento, la BD de usuarios con su info
-    def __init__(self, Equipos, id_Usuario, Participantes, X_Equipos):
+    # Ponderaciones -> dado es una lista de valores de 18 posiciones. Representa lo siguiente
+    # son los atributos de un participante (los importantes mirar excel) que si el valor es positivo se prioriza maximizar
+    # en caso contrario si es negativo se minimizara, cuando mayor sean en cada caso los numeros tanto positivos
+    # o negativos mayor prioridad tendran
+    def __init__(self, Equipos, id_Usuario, Participantes, X_Equipos, Ponderaciones):
         self.teams = teams
         self.Equipos = Equipos
         self.id_Usuario = id_Usuario
         self.idParticipantes = Participantes["ID"].astype(str)
         self.X_Equipos = X_Equipos
+        self.Ponderaciones = Ponderaciones
 
         try:
             path = get_path_csv("Data")
@@ -103,14 +108,35 @@ class TeamFormation:
     
         return (team, creado_por_usuario)
     
+    # Calcula la compatibilidad que tiene los integrates del equipo entre si sin tener encuenta el 
+    # usuario objetivo
+    def evaluarCompatibilidadEquipo(self, team) -> float:
+        score = 0
+    
+        return score
+
+    # Calcula la compatibilidad entre el equipo y nuestro usuario
+    def evaluarEquipoParaUser(self, usuario, team) -> float:
+        score = 0
+
+        return score
 
     # Tengo que ver todavia como evalua si el equipo es el adecuado, tendre que crear funciones para el calculo
     # Necesito el vector de Preferencias (Exel), ver lo importante o no
     def evaluarEquipo(self, equipo: tuple) -> tuple:
-        
+        usuario = self.id_Usuario
+        team = list()
+
+        compatibilidadUsuarioEquipo = 0.7
+        compatibilidadEquipo = 0.3
+
+        for i in len(equipo) - 1 : 
+            if equipo[i] != usuario: 
+                team.append(equipo[i])
 
         score  = (
-
+            self.evaluarEquipoParaUser(usuario, team) * compatibilidadUsuarioEquipo + 
+            self.evaluarCompatibilidadEquipo(team) * compatibilidadEquipo
         )
 
         return score,
