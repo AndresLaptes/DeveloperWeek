@@ -1,9 +1,13 @@
 import pandas as pd
 import random as rd
+import numpy as np
+
 from deap import base, creator, tools, algorithms
 from pathlib import Path
 from typing import List, Dict
 
+from sentence_transformers import SentenceTransformer, util
+from concurrent.futures import ThreadPoolExecutor
 
 
 def get_path_csv(filename):
@@ -20,7 +24,7 @@ def get_path_csv(filename):
     return file_path
 
 
-Ponderaciones = {1,1,1,1,2,3,2,1,3,1,4,1,1,1,2,3,5,2,1}
+PonderacionesTest = {1,1,1,1,2,3,2,1,3,1,4,1,1,1,2,3,5,2,1}
 
 def generateRandomTeams(datos):
     num = rd.randint(1, 20)
@@ -41,6 +45,8 @@ def generateRandomTeams(datos):
 
 
 MAX_NUM_PARTNERS = 4
+YEARS = ['1st year', '2nd year', '3rd year', '4th year', 'Masters', 'PhD']
+YEAR_TO_INDEX = {year: index for index, year in enumerate(YEARS)}
 
 class TeamFormation:
     # Equipos -> todos los equipos disponibles, 1 equipo es una lista de los id de los participantes (lsit(list(String)))
@@ -52,12 +58,18 @@ class TeamFormation:
     # en caso contrario si es negativo se minimizara, cuando mayor sean en cada caso los numeros tanto positivos
     # o negativos mayor prioridad tendran
     def __init__(self, Equipos, id_Usuario, Participantes, X_Equipos, Ponderaciones):
-        self.teams = teams
         self.Equipos = Equipos
         self.id_Usuario = id_Usuario
         self.idParticipantes = Participantes["ID"].astype(str)
+        self.idParticipantes = Participantes
         self.X_Equipos = X_Equipos
         self.Ponderaciones = Ponderaciones
+        self.Universidades = set(Participantes["University"])
+
+        self.EquiposValidos = [
+            equipo for equipo in self.Equipos 
+            if self.id_Usuario not in equipo and len(equipo) >= 1 and len(equipo) < MAX_NUM_PARTNERS
+        ]
 
         try:
             path = get_path_csv("Data")
@@ -77,42 +89,99 @@ class TeamFormation:
 
 
     def crearIndividuo(self) -> tuple:
-        creado_por_usuario = False
+        creado_por_usuario = True
 
-        # 10% de probabilidad de crear un equipo nuevo
-        if rd.random() < 0.1:
-            # Crear equipo nuevo con 1-3 miembros aleatorios + usuario objetivo
-            otros_usuarios = [
-                id for id in self.idParticipantes 
-                if id != self.id_Usuario
-            ]
-            tam_equipo = rd.randint(1, 3)
-            team = rd.sample(otros_usuarios, tam_equipo)
-            team.append(self.id_Usuario)
-            creado_por_usuario = True
-            return (team, creado_por_usuario)
-    
-        equipos_validos = [
-            equipo for equipo in self.Equipos 
-            if self.id_Usuario not in equipo and len(equipo) >= 1 and len(equipo) < MAX_NUM_PARTNERS
-        ] 
-    
-        # Si no he encontrado ningun equipo valido devuelvo el Usuario que crea su propio equipo y esta el solo
-        if not equipos_validos:
-            creado_por_usuario = True
-            return ([self.id_Usuario], creado_por_usuario)
-    
-        equipo_elegido = rd.choice(equipos_validos)
-        team = list(equipo_elegido)
+        # Crear equipo nuevo con 1-3 miembros aleatorios + usuario objetivos
+        otros_usuarios = [
+            id for id in self.idParticipantes 
+            if id != self.id_Usuario and id not in self.EquiposValidos
+        ]
+
+        tam_equipo = rd.randint(1, 3)
+        team = rd.sample(otros_usuarios, tam_equipo)
         team.append(self.id_Usuario)
+        creado_por_usuario = True
     
         return (team, creado_por_usuario)
-    
+
+    # Calcula las puntuaciones normalizadas de la diferencia de edad del Equipo, si los integrantes tienen mucha diferencia el putnaje tendera a 0, 
+    # en caso contrario cuanto mas parecidos tengan las edades tendran mas cercano a 1 sera
+    def evaluar_Edad(self, team) -> float:
+        if len(team) == 1:
+            return 1.0
+
+        score = 0
+        num_comparaciones = 0
+
+        edad_min = self.Participantes['Age'].min()
+        edad_max = self.Participantes['Age'].max()
+
+        for i in range(len(team)):
+            for j in range(i + 1, len(team)):
+                integrante1 = team[i]
+                integrante2 = team[j]
+
+                edad1 = self.Participantes.loc[self.Participantes['ID'] == integrante1, 'Age'].values[0]
+                edad2 = self.Participantes.loc[self.Participantes['ID'] == integrante2, 'Age'].values[0]
+
+                diferencia_edad = abs(edad1 - edad2)
+
+                # score calculado en logaritmo para penalizar diferencias grandes
+                score += 1 - (np.log(1 + diferencia_edad) / np.log(edad_max - edad_min + 1))
+
+                num_comparaciones += 1
+
+        # Devolver el puntaje normalizado 
+        return score/num_comparaciones
+
+    def evaluar_AñoEscolar(self, team) -> float:
+        if len(team) == 1:
+            return 1.0
+
+        score = 0
+        num_comparaciones = 0
+
+        min_year = 0
+        max_year = len(YEARS) - 1
+
+        for i in range(len(team)):
+            for j in range(i + 1, len(team)):
+                integrante1 = team[i]
+                integrante2 = team[j]
+
+                year1 = self.Participantes.loc[self.Participantes['ID'] == integrante1, 'Year'].values[0]
+                year2 = self.Participantes.loc[self.Participantes['ID'] == integrante2, 'Year'].values[0]
+
+                diferencia_year = abs(YEAR_TO_INDEX[year1] - YEAR_TO_INDEX[year2])
+
+                # score calculado en logaritmo para penalizar diferencias grandes
+                score += 1 - (np.log(1 + diferencia_year) / np.log(max_year - min_year + 1))
+
+                num_comparaciones += 1
+
+        return score / num_comparaciones
+
+    def evaluar_Universidad(self, team) -> float:
+        if len(team) == 1:
+            return 1.0
+        
+        score = 0
+        for part in team:
+            uni = self.Participantes.loc[self.Participantes['ID'] == part, 'University'].values[0]
+            if uni in self.Universidades:
+                score += 1
+
+        return score/len(team)
+
     # Calcula la compatibilidad que tiene los integrates del equipo entre si sin tener encuenta el 
     # usuario objetivo
     def evaluarCompatibilidadEquipo(self, team) -> float:
         score = 0
-    
+        
+        score += self.evaluar_Edad(team) * self.Ponderaciones[0]
+        score += self.evaluar_AñoEscolar(team) * self.Ponderaciones[1]
+        score += self.evaluar_Universidad(team) * self.Ponderaciones[2]
+
         return score
 
     # Calcula la compatibilidad entre el equipo y nuestro usuario
@@ -144,8 +213,8 @@ class TeamFormation:
 
     def configDeap(self):
         # Funcion que crea a un individuo
-        self.toolbox.register("individual", tools.initIterate, creator.Individual, self.crearIndividuo)
+        self.toolbox.register("individual", tools.initIterate, creator.Individual, self.crearIndividuo())
         # Funcion que crea a la poblacion
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
         # Funcion que evalua al equipo, basicamente el calculador del score o fitness
-        self.toolbox.register("evaluate", self.evaluarEquipo)
+        self.toolbox.register("evaluate", self.evaluarEquipo(self.Equipos))
