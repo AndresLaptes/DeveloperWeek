@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'; //used for react router
 import '../styles/Header.css';
+import ProfileMenu from "./ProfileMenu"; 
 const Header = () => {
     return (
         <header className="header">
@@ -12,13 +13,13 @@ const Header = () => {
                         <Link to="/">Home</Link>
                     </li>
                     <li>
-                        <Link to="/Teams">All Teams</Link>
-                    </li>
-                    <li>
-                        <Link to="/Profile">Profile</Link>
+                        <Link to="/Teams">My Team</Link>
                     </li>
                     <li>
                         <Link to="/About">About us</Link>
+                    </li>
+                    <li>
+                        <ProfileMenu></ProfileMenu>
                     </li>
                 </ul>
             </nav>

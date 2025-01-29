@@ -3,7 +3,7 @@ const Teams = () => {
 
     return (
         <div>
-            <h1>Teams</h1>
+            <h1>My Team</h1>
         </div>
     );
 };
