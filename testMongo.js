@@ -1,7 +1,110 @@
 const { MongoClient } = require("mongodb");
+const { exec } = require("child_process");
+const fs = require('fs');
 
 // Replace with your actual username and password
 const uri = "mongodb+srv://omar_user:123@developerweek.tl23p.mongodb.net/?retryWrites=true&w=majority&appName=DeveloperWeek";
+
+// Function to run the Python script and perform model inference
+async function runModel(inputText) {
+    try {
+        return new Promise((resolve, reject) => {
+            exec(`python3 tokenizer.py "${inputText}"`, (error, stdout, stderr) => {
+                if (error) {
+                    reject(`❌ Error: ${error.message}`);
+                    return;
+                }
+                if (stderr) {
+                    reject(`❌ stderr: ${stderr}`);
+                    return;
+                }
+
+                const output = JSON.parse(stdout);  // Parse the model result
+                resolve(output.result);
+            });
+        });
+    } catch (error) {
+        console.error("❌ Error running model:", error);
+        return null;
+    }
+}
+
+
+// Fetch documents from MongoDB and update them
+async function updateDocuments() {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+    try {
+        await client.connect();
+        console.log("✅ Successfully connected to MongoDB!");
+
+        const database = client.db("example_db");
+        const collection = database.collection("example_db");
+
+        const documents = await collection.find().limit(10).toArray();
+
+        for (const doc of documents) {
+            console.log(`Processing document ${doc._id}...`);
+            if (doc.objective) {
+                
+                const modelResult = await runModel(doc.objective);
+
+                if (modelResult !== null) {
+                    await collection.updateOne(
+                        { _id: doc._id },
+                        { $set: { ember_obj: modelResult } }
+                    );
+                    console.log(`✅ Updated document ${doc._id} with ember_obj`);
+                } else {
+                    console.log(`⚠️ Skipped document ${doc._id} due to model error.`);
+                }
+            }
+
+            if(doc.introduction) {
+                const modelResult = await runModel(doc.introduction);
+                if (modelResult !== null) {
+                    await collection.updateOne(
+                        { _id: doc._id },
+                        { $set: { ember_intr: modelResult } }
+                    );
+                    console.log(`✅ Updated document ${doc._id} with ember_intr`);
+                } else {
+                    console.log(`⚠️ Skipped document ${doc._id} due to model error.`);
+                }
+            }
+
+            if(doc.future_excitement) {
+                const modelResult = await runModel(doc.future_excitement);
+                if (modelResult !== null) {
+                    await collection.updateOne(
+                        { _id: doc._id },
+                        { $set: { ember_excitement: modelResult } }
+                    );
+                    console.log(`✅ Updated document ${doc._id} with ember_excitement`);
+                } else {
+                    console.log(`⚠️ Skipped document ${doc._id} due to model error.`);
+                }
+            }
+
+            if(doc.fun_fact) {
+                const modelResult = await runModel(doc.fun_fact);
+                if (modelResult !== null) {
+                    await collection.updateOne(
+                        { _id: doc._id },
+                        { $set: { ember_fact: modelResult } }
+                    );
+                    console.log(`✅ Updated document ${doc._id} with ember_fact`);
+                } else {
+                    console.log(`⚠️ Skipped document ${doc._id} due to model error.`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("❌ Error updating documents:", error);
+    } finally {
+        await client.close();
+    }
+}
 
 async function testConnection() {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -45,5 +148,48 @@ async function fetchDocuments() {
 }
 
 
-testConnection();
-fetchDocuments();
+async function addParticipants(jsonFile, mongoUri, dbName, collectionName) {
+    const client = new MongoClient(mongoUri);
+    try {
+        // Connect to MongoDB
+        await client.connect();
+        const db = client.db(dbName);
+        const collection = db.collection(collectionName);
+
+        // Read JSON file
+        const data = JSON.parse(fs.readFileSync(jsonFile, 'utf-8'));
+        const participants = data.participants || [];
+
+        for (const participant of participants) {
+            const participantId = participant.id;
+            if (!participantId) continue; // Skip if no ID is present
+
+            const existingParticipant = await collection.findOne({ id: participantId });
+            
+            if (!existingParticipant) {
+                // Add missing fields
+                participant.ember_obj = [];
+                participant.ember_intr = [];
+                participant.ember_fact = [];
+                participant.ember_excitement = [];
+
+                // Insert new participant
+                await collection.insertOne(participant);
+                console.log(`Added participant: ${participant.name}`);
+            } else {
+                console.log(`Participant ${participant.name} already exists.`);
+            }
+        }
+    } catch (error) {
+        console.error("Error processing participants:", error);
+    } finally {
+        await client.close();
+        console.log("Done.");
+    }
+}
+
+
+// testConnection();
+// fetchDocuments();
+//updateDocuments();
+addParticipants("participants.json", uri, "example_db", "example_db");
