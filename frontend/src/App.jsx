@@ -5,6 +5,9 @@ import Footer from "./components/Footer";
 import Teams from "./pages/Teams";
 import Profile from "./pages/Profile";
 import Home from "./pages/Home";
+import Settings from "./pages/Settings"
+import Login from "./pages/Login"
+import Signup from "./pages/Signup"
 import "./App.css";
 
 
@@ -23,6 +26,9 @@ function App() {
             <Route path="/About" element={<About />} />
             <Route path = "/Teams" element = {<Teams />} />
             <Route path = "/Profile" element = {<Profile />} />
+            <Route path = "/Settings" element = {<Settings />} />
+            <Route path = "/Login" element = {<Login />} />
+            <Route path = "/Signup" element = {<Signup />} />
           </Routes>
         </main>
         <Footer className = "footer"/>

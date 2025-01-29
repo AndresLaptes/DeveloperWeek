@@ -1,26 +1,27 @@
-import { div, ul } from 'framer-motion/client'
-import React from 'react'
 import { Link } from 'react-router-dom'; 
 import { useState, useEffect, useRef } from "react";
 import '../styles/ProfileMenu.css';
-import user from "../assets/user.png";
+import defaultUser from "../assets/unlogged-profile.svg";
 
-const ProfileMenu = ({children}) => {
+const ProfileMenu = ({children, initialIsLogged}) => {
     const [profileDropdown, setProfileDropdown] = useState(false);
+    const [isLogged, setIsLogged] = useState(initialIsLogged);
+    
     const dropdownRef = useRef(null);
+    const userPhoto = "";
 
-    useEffect( () => {
+    useEffect(() => {
 
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-              setProfileDropdown(false);
+        const handleClickOutside = () => {
+            if(dropdownRef.current && !dropdownRef.current.contains(event.target)){
+                setProfileDropdown(false);
             }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-        
+
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener("mousedown", handleClickOutside);
         };
     
     }, []);
@@ -32,28 +33,42 @@ const ProfileMenu = ({children}) => {
          <div>
             <div className="profile-container"> 
                 <img 
-                    src={user} 
+                    src= {isLogged ? userPhoto : defaultUser}
                     alt="user" 
-                    className="profile-image"
-                    onClick={() => setProfileDropdown((prev) => !prev)}
+                    className={`profile-image ${isLogged ? 'logged' : 'unlogged'}`}
+                    onClick={() => setProfileDropdown(!profileDropdown)}
                 />
             </div>
-            
-            <div className={`profile-dropdown ${profileDropdown ? 'active' : ''}`}>
+            <div className={`profile-dropdown ${profileDropdown ? 'active' : ''}`} ref={dropdownRef}>
                 
                 <div className={`profile-dropdown-arrow ${profileDropdown ? 'active' : ''}`}></div>
-
-                <ul className="profile-menu-list">
-                    <li className="menu-item">
-                        <Link to="/Profile">Profile</Link>
-                    </li>
-                    <li className="menu-item">Settings</li>
-                    <li className="menu-item">Logout</li>
                     {
-                        children &&
-                        <li className="menu-item">{children}</li>
+                        isLogged &&
+                        <ul className={`profile-menu-list $ logged`}>
+                        <li className="menu-item">
+                            <Link to="/Profile">Profile</Link>
+                        </li>
+                        <li className="menu-item">
+                            <Link to="/Settings">Settings</Link>
+                        </li>
+                        <li className="menu-item" onClick={() => setIsLogged(!isLogged)}>Logout</li>
+                        </ul>
                     }
-                </ul>
+                    
+                    {
+                        !isLogged &&
+                        <ul className={`profile-menu-list $ 'unlogged'`}>
+                            <li className="menu-item">
+                                <Link to="/Login">Log In</Link>
+                            </li>
+                            <li className="menu-item">
+                                <Link to="/Signup">Sign Up</Link>
+                            </li>
+                            <li className="menu-item" onClick={() => setIsLogged(!isLogged)}>Click to simulate login</li>
+                        </ul>
+                    }
+                    
+                
             </div>
          </div>
     )

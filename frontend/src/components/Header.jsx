@@ -19,7 +19,7 @@ const Header = () => {
                         <Link to="/About">About us</Link>
                     </li>
                     <li>
-                        <ProfileMenu></ProfileMenu>
+                        <ProfileMenu initialIsLogged={false}></ProfileMenu>
                     </li>
                 </ul>
             </nav>

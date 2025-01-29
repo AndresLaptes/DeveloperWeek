@@ -2,7 +2,7 @@
     position: relative;
 }
 
-.profile-image {
+.profile-image.logged{
 height: 40px;
 width: 40px;
 object-fit: cover;
@@ -10,6 +10,14 @@ border: 4px solid #9ca3af;
 border-radius: 50%;
 cursor: pointer;
 }
+
+.profile-image.unlogged{
+    height: 40px;
+    width: 40px;
+    object-fit: cover;
+    cursor: pointer;
+}
+
 
 .profile-dropdown {
 position: absolute;
@@ -62,9 +70,14 @@ flex-direction: column;
 gap: 0.5rem;  /* Reduced gap */
 }
 
+.profile-menu-list.logged li:nth-child(3){
+color:red;
+}
+
 .menu-item {
 margin: 0;
 padding: 0;
+cursor: pointer;
 }
 
 .menu-item a,
