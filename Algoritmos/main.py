@@ -25,9 +25,6 @@ def get_path_csv(filename):
     
     return file_path
 
-
-PonderacionesTest = {1,1,1,1,2,3,2,1,3,1,4,1,1,1,2,3,5,2,1}
-
 def generateRandomTeams(datos):
     num = rd.randint(1, 20)
     teams = []
@@ -51,6 +48,12 @@ YEARS = ['1st year', '2nd year', '3rd year', '4th year', 'Masters', 'PhD']
 YEAR_TO_INDEX = {year: index for index, year in enumerate(YEARS)}
 INVALID_PREFERENCIA = set(["Don't know", "Don't care"])
 
+# Parámetros del algoritmo genético
+TAM_POBLACION = 100
+NUM_GENERACIONES = 50
+PROB_CRUCE = 0.7      # Probabilidad de cruce
+PROB_MUTACION = 0.2   # Probabilidad de mutación
+PONDERACIONES_TEST = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 
 class TeamFormation:
     # Equipos -> todos los equipos disponibles, 1 equipo es una lista de los id de los participantes (lsit(list(String)))
@@ -76,11 +79,6 @@ class TeamFormation:
         ]
 
         try:
-            path = get_path_csv("Data")
-            datos = pd.read_csv(path)
-    
-            teams = generateRandomTeams(datos)
-    
             creator.create("FitnessMax", base.Fitness, weights=(1.0,))
             creator.create("Individual", tuple, fitness=creator.FitnessMax)
             
@@ -472,6 +470,115 @@ class TeamFormation:
         return score,
 
 
+    def crossover_teams(self, team1: tuple, team2: tuple) -> tuple:
+        
+        team1_ids, _ = team1
+        team2_ids, _ = team2
+    
+        # Remover temporalmente al usuario objetivo para hacer el cruce
+        team1_without_target = [id for id in team1_ids if id != self.id_Usuario]
+        team2_without_target = [id for id in team2_ids if id != self.id_Usuario]
+    
+        # Crear pools de miembros potenciales
+        all_members = list(set(team1_without_target + team2_without_target))
+    
+        if len(all_members) < 2:
+            # Si no hay suficientes miembros para cruzar, devolver los equipos originales
+            return team1, team2
+    
+        # Crear dos nuevos equipos
+        new_team1 = []
+        new_team2 = []
+    
+        # Determinar tamaños aleatorios para los nuevos equipos (1-3 miembros + usuario objetivo)
+        size1 = rd.randint(1, min(3, len(all_members)))
+        size2 = rd.randint(1, min(3, len(all_members)))
+    
+        # Seleccionar miembros aleatoriamente para cada equipo
+        if all_members:
+            new_team1 = rd.sample(all_members, size1)
+            # Remover los miembros seleccionados para el segundo equipo
+            remaining_members = [m for m in all_members if m not in new_team1]
+            if remaining_members:
+                new_team2 = rd.sample(remaining_members, min(size2, len(remaining_members)))
+    
+        # Añadir el usuario objetivo a ambos equipos
+        new_team1.append(self.id_Usuario)
+        new_team2.append(self.id_Usuario)
+    
+        return (new_team1, True), (new_team2, True)
+
+    def mutate_team(self, team: tuple) -> tuple:
+        team_ids, _ = team
+    
+        # Obtener usuarios disponibles que no están en el equipo actual
+        available_users = [
+            id for id in self.idParticipantes 
+            if id != self.id_Usuario and 
+            id not in self.EquiposValidos and 
+            id not in team_ids
+        ]
+    
+        if not available_users:
+            return team
+    
+        # Remover usuario objetivo temporalmente
+        current_team = [id for id in team_ids if id != self.id_Usuario]
+    
+        # Decidir si añadir o reemplazar un miembro (50% probabilidad cada uno)
+        if rd.random() < 0.5 and len(current_team) < 3:
+            # Añadir un nuevo miembro si hay espacio
+            current_team.append(rd.choice(available_users))
+        elif current_team:
+            # Reemplazar un miembro existente
+            idx_to_replace = rd.randrange(len(current_team))
+            current_team[idx_to_replace] = rd.choice(available_users)
+    
+        # Añadir el usuario objetivo de nuevo
+        current_team.append(self.id_Usuario)
+    
+        return (current_team, True)
+
+    def select_teams(self, population, k):
+        def tournament_selection(tournament_pool):
+            # Si el torneo es más pequeño que 3, usar todos los disponibles
+            if len(tournament_pool) < 3:
+                tournament = tournament_pool
+            else:
+                tournament = rd.sample(tournament_pool, 3)
+        
+            # Evaluar cada equipo en el torneo usando la función existente
+            best_team = None
+            best_score = float('-inf')
+        
+            for team in tournament:
+                # La función evaluarEquipo devuelve una tupla con un solo valor
+                score = self.evaluarEquipo(team[0])[0]
+            
+                if score > best_score:
+                    best_score = score
+                    best_team = team
+        
+            return best_team
+    
+        selected = []
+        # Hacer una copia de la población para no modificar la original
+        available_teams = population.copy()
+    
+        for _ in range(k):
+            if not available_teams:
+                break
+            
+            # Seleccionar el mejor equipo del torneo
+            selected_team = tournament_selection(available_teams)
+            selected.append(selected_team)
+        
+            # Remover el equipo seleccionado de los disponibles
+            if selected_team in available_teams:
+                available_teams.remove(selected_team)
+    
+        return selected
+
     def configDeap(self):
         # Funcion que crea a un individuo
         self.toolbox.register("individual", tools.initIterate, creator.Individual, self.crearIndividuo())
@@ -479,3 +586,105 @@ class TeamFormation:
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
         # Funcion que evalua al equipo, basicamente el calculador del score o fitness
         self.toolbox.register("evaluate", self.evaluarEquipo(self.Equipos))
+        # Funcion de combinación
+        self.toolbox.register("mate", self.crossover_teams)
+        # Funcion de mutación
+        self.toolbox.register("mutate", self.mutate_team)
+        # Funcion de selección
+        self.toolbox.register("select", self.select_teams)
+
+    def encontrar_mejores_equipos(self) -> List[tuple]:
+    
+        # Crear población inicial
+        poblacion = self.toolbox.population(n=TAM_POBLACION)
+    
+        # Evaluar población inicial
+        for ind in poblacion:
+            ind.fitness.values = self.toolbox.evaluate(ind[0])
+    
+        # Almacenar el mejor equipo encontrado hasta el momento
+        mejor_equipo = tools.selBest(poblacion, k=1)[0]
+        mejor_fitness = mejor_equipo.fitness.values[0]
+    
+        # Lista para almacenar los mejores equipos únicos encontrados
+        mejores_equipos = set()
+    
+        # Evolución
+        for gen in range(NUM_GENERACIONES):
+            # Seleccionar padres para la siguiente generación
+            descendientes = self.toolbox.select(poblacion, len(poblacion))
+            descendientes = list(map(self.toolbox.clone, descendientes))
+        
+            # Aplicar cruce
+            for i in range(0, len(descendientes), 2):
+                if i + 1 < len(descendientes) and rd.random() < PROB_CRUCE:
+                    descendientes[i], descendientes[i+1] = self.toolbox.mate(
+                        descendientes[i], descendientes[i+1]
+                    )
+                    # Invalidar fitness de los hijos modificados
+                    del descendientes[i].fitness.values
+                    del descendientes[i+1].fitness.values
+        
+            # Aplicar mutación
+            for i in range(len(descendientes)):
+                if rd.random() < PROB_MUTACION:
+                    descendientes[i] = self.toolbox.mutate(descendientes[i])
+                    del descendientes[i].fitness.values
+        
+            # Evaluar individuos con fitness invalidado
+            for ind in descendientes:
+                if not ind.fitness.valid:
+                    ind.fitness.values = self.toolbox.evaluate(ind[0])
+        
+            # Actualizar la población
+            poblacion[:] = descendientes
+        
+            # Actualizar mejor equipo encontrado
+            mejor_actual = tools.selBest(poblacion, k=1)[0]
+            if mejor_actual.fitness.values[0] > mejor_fitness:
+                mejor_equipo = mejor_actual
+                mejor_fitness = mejor_actual.fitness.values[0]
+        
+            # Almacenar equipos únicos que superen cierto umbral
+            for ind in poblacion:
+                if ind.fitness.values[0] >= 0.8:  # Umbral de calidad
+                    equipo_tuple = tuple(sorted(ind[0]))  # Convertir a tupla para poder añadirlo al set
+                    mejores_equipos.add((equipo_tuple, ind[1]))
+        
+            # Opcional: Imprimir progreso
+            if gen % 10 == 0:
+                print(f"Generación {gen}: Mejor Fitness = {mejor_fitness:.3f}")
+    
+        # Convertir los mejores equipos encontrados a lista y ordenarlos por fitness
+        mejores_equipos_lista = list(mejores_equipos)
+        mejores_equipos_lista.sort(
+            key=lambda x: self.toolbox.evaluate(x[0])[0], 
+            reverse=True
+        )
+    
+        # Retornar los N mejores equipos únicos encontrados
+        return mejores_equipos_lista[:self.X_Equipos]  
+
+    def ejecutar_busqueda_equipos(self):
+        mejores_equipos = self.encontrar_mejores_equipos()
+    
+        print("\nMejores equipos encontrados:")
+        for i, (equipo, creado_por_usuario) in enumerate(mejores_equipos, 1):
+            fitness = self.toolbox.evaluate(equipo)[0]
+            print(f"\nEquipo {i} (Fitness: {fitness:.3f}):")
+            for id_miembro in equipo:
+                if id_miembro == self.id_Usuario:
+                    print(f"- {id_miembro} (Usuario objetivo)")
+                else:
+                    print(f"- {id_miembro}")
+
+
+try:
+    path = get_path_csv("Data")
+    datos = pd.read_csv(path)
+    
+    test = TeamFormation([], "2ebad15c-c0ef-4c04-ba98-c5d98403a90c", datos, 5, PONDERACIONES_TEST)
+    test.ejecutar_busqueda_equipos()
+    
+except Exception as e:
+    print("Error al procesar el archivo:", e)
