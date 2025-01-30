@@ -4,10 +4,16 @@ import { TiUser } from "react-icons/ti";
 import { TiLockClosed } from "react-icons/ti";
 
 const LoginForm = () => {
+    
+    const handleSubmit = () => {
+        
+    }
+
+    
     return (  
         <div className="wrapper">
+            <h1>Login</h1>
             <form action="">
-                <h1>Login</h1>
                 <div className="input-box">
                     <input type="text" placeholder='Username' required/>
                     <TiUser className="icon"/>
@@ -21,7 +27,7 @@ const LoginForm = () => {
                     <a href="#">Forgot password?</a>
                 </div>
 
-                <button className="submit-button" type="submit">Login</button>
+                <button className="submit-button" type="submit" onClick={handleSubmit()}>Login</button>
 
                 <div className="register-link">
                     <p>Not a member? <a href="#">Register here!</a></p>

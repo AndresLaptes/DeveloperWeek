@@ -1,16 +1,10 @@
+
 .wrapper {
     width: 420px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
-form {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+.wrapper h1{
+    text-align: center;
 }
 
 .wrapper .input-box{
@@ -27,7 +21,7 @@ form {
     border: none;
     outline: none;
     border: 2px solid rgba(186, 82, 82, 0.2);
-    border-radius: 40px;
+    border-radius: 20px;
     color: black;
 }
 
@@ -39,7 +33,7 @@ form {
     position: absolute;
     right: 20px;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-40%);
     font-size: 25px;
 }
 
@@ -66,3 +60,10 @@ form {
     background-color: rebeccapurple;
 }
 
+.wrapper .register-link {
+    text-align: center;
+}
+
+.register-link p{
+    font-size: 0.8rem;
+}

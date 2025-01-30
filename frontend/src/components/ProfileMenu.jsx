@@ -9,7 +9,7 @@ const ProfileMenu = ({children, initialIsLogged}) => {
     const [isLogged, setIsLogged] = useState(initialIsLogged);
     
     const dropdownRef = useRef(null);
-    const userPhoto = "";
+    const userPhoto = ""; //TODO UPDATE ACCORDING TO PROFILE PICTURE PATH
 
     useEffect(() => {
 
@@ -27,21 +27,17 @@ const ProfileMenu = ({children, initialIsLogged}) => {
     
     }, []);
 
-
-
-
     return (
          <div ref={dropdownRef}>
             <div className="profile-container" onClick={() => setProfileDropdown(!profileDropdown)}> 
                 {
-                    ( !isLogged && <TiUser className="profile-image unlogged"/> )
-                    ||
-                    (isLogged &&
-                    <img 
-                        src= {isLogged ? userPhoto : defaultUser}
+                    ( isLogged 
+                    ? <img 
+                        src= "userPhoto" //TODO UPDATE ACCORDING TO PROFILE PICTURE PATH
                         alt="user" 
                         className="profile-image logged" 
-                    />
+                      />
+                    : <TiUser className="profile-image unlogged"/> 
                     )
                 }
             </div>
@@ -49,8 +45,8 @@ const ProfileMenu = ({children, initialIsLogged}) => {
                 
                 <div className={`profile-dropdown-arrow ${profileDropdown ? 'active' : ''}`}></div>
                 {
-                    isLogged &&
-                    <ul className={`profile-menu-list $ logged`}>
+                    (isLogged 
+                    ? <ul className={`profile-menu-list $ logged`}>
                         <li className="menu-item">
                             <Link to="/Profile">Profile</Link>
                         </li>
@@ -58,11 +54,8 @@ const ProfileMenu = ({children, initialIsLogged}) => {
                             <Link to="/Settings">Settings</Link>
                         </li>
                         <li className="menu-item" onClick={() => setIsLogged(!isLogged)}>Logout</li>
-                    </ul>
-                }
-                {
-                    !isLogged &&
-                    <ul className={`profile-menu-list $ 'unlogged'`}>
+                      </ul>
+                    : <ul className={`profile-menu-list $ 'unlogged'`}>
                         <li className="menu-item">
                             <Link to="/Login">Log In</Link>
                         </li>
@@ -70,7 +63,8 @@ const ProfileMenu = ({children, initialIsLogged}) => {
                             <Link to="/Signup">Sign Up</Link>
                         </li>
                         <li className="menu-item" onClick={() => setIsLogged(!isLogged)}>Click to simulate login</li>
-                    </ul>
+                      </ul>
+                    )
                 }   
             </div>
          </div>
