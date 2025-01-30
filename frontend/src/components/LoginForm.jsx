@@ -9,12 +9,12 @@ const LoginForm = () => {
             <form action="">
                 <h1>Login</h1>
                 <div className="input-box">
-                    <TiUser />
                     <input type="text" placeholder='Username' required/>
+                    <TiUser className="icon"/>
                 </div>
                 <div className="input-box">
-                    <TiLockClosed />
                     <input type="text" placeholder='Password' required/>
+                    <TiLockClosed className="icon"/>
                 </div>
                 <div className="remember-forgot">
                     <label><input type="checkbox"/>Remember me</label>
