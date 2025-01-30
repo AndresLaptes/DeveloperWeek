@@ -1,6 +1,8 @@
 import pandas as pd
 import random as rd
 import numpy as np
+import re
+
 
 from deap import base, creator, tools, algorithms
 from pathlib import Path
@@ -253,6 +255,8 @@ class TeamFormation:
 
         return score/normalizar if normalizar > 0 else 1.0
 
+
+    # Evaluar la similitud entre hakatones en el equipo, cuantos mas hackatones mejor
     def evaluar_Hackathons(self, team) -> float:
         score = 0
 
@@ -263,6 +267,157 @@ class TeamFormation:
             score += hackathons
 
         return score/ (max_hackathons * len(team))
+
+    def SimilitudTextos(self, embedding1, embedding2) -> float:
+        return util.cos_sim(embedding1, embedding2).item()
+
+    def calculate_multiple_scores_with_parallelism(pairs):
+        with ThreadPoolExecutor() as executor:
+            scores = list(executor.map(lambda pair: (pair[0], pair[1]), pairs))
+
+        return scores
+
+    def evaluar_Textos(self, team, evaluar) -> float:
+
+        if len(team) < 2:
+            return 1.0
+        
+        pairs = []
+        for i in range(len(team)):
+            integrante1 = team[i]
+            for j in range(i + 1, len(team)):
+                integrante2 = team[j]
+
+                embedding1 = integrante1[evaluar]
+                embedding2 = integrante2[evaluar]
+
+                pairs.append((embedding1, embedding2))
+
+        scores = self.calculate_multiple_scores_with_parallelism(pairs)
+
+        return sum(scores) / len(scores)
+    
+    # Calcula la interseccion de idiomas entre los participantes del equipo
+    def evaluar_Idioma(self, team) -> float:
+        if len(team) == 1:
+            return 1.0  
+
+        idiomas_por_integrante = []
+    
+        for integrante in team:
+            idiomas = self.Participantes.loc[self.Participantes['ID'] == integrante['ID'], 'Preferred Languages']
+            if idiomas.notna().any():  
+                idiomas = idiomas.values[0].split(", ")
+                idiomas_por_integrante.append(set(idiomas)) 
+
+        if not idiomas_por_integrante:  
+            return 0.0
+
+
+        idioma_comun = set.intersection(*idiomas_por_integrante) if idiomas_por_integrante else set()
+
+        num_con_idioma_comun = sum(1 for idiomas in idiomas_por_integrante if idioma_comun & idiomas)
+
+        if num_con_idioma_comun == len(team):  
+            return 1.0
+        elif num_con_idioma_comun == len(team) - 1:
+            return 0.75
+        elif num_con_idioma_comun == len(team) - 2:
+            return 0.5
+        elif num_con_idioma_comun == len(team) - 3:
+            return 0.25
+        else:
+            return 0.0
+    
+     
+    # Calcula cuantos miebros del equipo son amigos
+    def evaluar_Friend(self, team) -> float:
+        score = 0
+
+        if len(team) == 1:
+            return 1.0
+
+        tmb = len(team)
+        for i in range(len(team)):
+            integrante1 = team[i]
+            amigos1 = set(self.Participantes.loc[self.Participantes['ID'] == integrante1['ID'], 'Friend Registration'].values[0].split(", "))
+            for j in range(i + 1, len(team)):
+                integrante2 = team[j]
+                if integrante2['ID'] in amigos1:
+                    score += 1          
+    
+        return score / tmb if tmb > 0 else 1.0
+    
+    # Calcula cuantos cuanto de bueno es el tamaño del equipo
+    def evaluar_PreferedSize(self, team) -> float:
+        if len(team) == 1:
+            return 1.0
+
+        media = 0
+        for integrante in team:
+            media += self.Participantes.loc[self.Participantes['ID'] == integrante['ID'], 'Preferred Team Size'].values[0]
+
+        media = media / len(team)
+        diff = abs(media - len(team))
+        if diff == 0:
+            return 1.0
+    
+        return 1 - min(1, diff / media)
+
+    #Calcula la disponibilidad entre los integrantes del equipo
+    def evaluar_Availability(self, team) -> float:
+        if len(team) == 1:
+            return 1.0
+
+        score = 0
+        total_comparaciones = 0
+
+        for i in range(len(team)):
+            integrante1 = team[i]
+            for j in range(i + 1, len(team)):
+                integrante2 = team[j]
+
+                disponibilidad1 = self.Participantes.loc[self.Participantes['ID'] == integrante1['ID'], 'Availability'].values[0]
+                disponibilidad2 = self.Participantes.loc[self.Participantes['ID'] == integrante2['ID'], 'Availability'].values[0]
+
+                if disponibilidad1 == disponibilidad2:
+                    score += 1
+
+                total_comparaciones += 1
+
+        return score / total_comparaciones if total_comparaciones > 0 else 1.0
+
+    def evaluar_Skills(self, team) -> float:
+        team_skills = []
+        for integrante in team:
+            data = str(self.Participante.loc[self.Participante['ID'] == integrante['ID'], 'Programming Skills'].values[0])
+            pares = re.findall(r'([^:,]+): (\d+)', data)
+            skills = [(habilidad.strip(), int(nivel)) for habilidad, nivel in pares]
+            team_skills.extend(skills)
+    
+        if not team_skills:
+            return 0
+    
+        skill_counts = {}
+        skill_levels = {}
+        for skill, level in team_skills:
+            skill_counts[skill] = skill_counts.get(skill, 0) + 1
+            skill_levels[skill] = max(skill_levels.get(skill, 0), level)
+    
+        total_skills = len(team_skills)
+        unique_skills = len(skill_counts)
+        diversity_score = unique_skills / total_skills 
+    
+        level_scores = []
+        for skill, level in skill_levels.items():
+            level_score = level / 10 
+            level_scores.append(level_score)
+    
+        avg_level_score = sum(level_scores) / len(level_scores) if level_scores else 0
+    
+        final_score = (diversity_score * 0.6) + (avg_level_score * 0.4)
+    
+        return round(final_score, 2)
 
     # Calcula la compatibilidad que tiene los integrates del equipo entre si sin tener encuenta el 
     # usuario objetivo
@@ -276,12 +431,23 @@ class TeamFormation:
         score += self.evaluar_Preferencia(team) * self.Ponderaciones[4]
         score += self.evaluar_Experiencia(team) * self.Ponderaciones[5]
         score += self.evaluar_Hackathons(team) * self.Ponderaciones[6]
-
+        score += self.evaluar_Textos(team, 'ember_obj') * self.Ponderaciones[7]
+        score += self.evaluar_Textos(team, 'ember_intr') * self.Ponderaciones[8]
+        score += self.evaluar_Textos(team, 'ember_excitement') * self.Ponderaciones[9]
+        score += self.evaluar_Idioma(team) * self.Ponderaciones[10]
+        score += self.evaluar_Friend(team) * self.Ponderaciones[11]
+        score += self.evaluar_PreferedSize(team) * self.Ponderaciones[12]
+        score += self.evaluar_Availability(team) * self.Ponderaciones[13]
+        score += self.evaluar_Skills(team) * self.Ponderaciones[14]
+        
         return score
 
     # Calcula la compatibilidad entre el equipo y nuestro usuario
     def evaluarEquipoParaUser(self, usuario, team) -> float:
         score = 0
+
+        team.append(usuario)
+        score = self.evaluarCompatibilidadEquipo(team)
 
         return score
 
