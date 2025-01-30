@@ -149,47 +149,43 @@ async function fetchDocuments() {
 
 
 async function addParticipants(jsonFile, mongoUri, dbName, collectionName) {
-    const client = new MongoClient(mongoUri);
+    const client = new MongoClient(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        // Connect to MongoDB
         await client.connect();
         const db = client.db(dbName);
         const collection = db.collection(collectionName);
 
-        // Read JSON file
+        // Leer JSON
         const data = JSON.parse(fs.readFileSync(jsonFile, 'utf-8'));
-        const participants = data.participants || [];
+        const participants = Array.isArray(data) ? data : []; 
 
         for (const participant of participants) {
-            const participantId = participant.id;
-            if (!participantId) continue; // Skip if no ID is present
+            if (!participant.id) continue;  
 
-            const existingParticipant = await collection.findOne({ id: participantId });
-            
+            const existingParticipant = await collection.findOne({ id: participant.id });
             if (!existingParticipant) {
-                // Add missing fields
-                participant.ember_obj = [];
-                participant.ember_intr = [];
-                participant.ember_fact = [];
-                participant.ember_excitement = [];
+                participant.ember_obj = participant.objective ? await runModel(participant.objective) || 0 : 0;
+                participant.ember_intr = participant.introduction ? await runModel(participant.introduction) || 0 : 0;
+                participant.ember_fact = participant.fun_fact ? await runModel(participant.fun_fact) || 0 : 0;
+                participant.ember_excitement = participant.future_excitement ? await runModel(participant.future_excitement) || 0 : 0;
 
-                // Insert new participant
                 await collection.insertOne(participant);
-                console.log(`Added participant: ${participant.name}`);
+                console.log(`✅ Added participant: ${participant.name}`);
             } else {
-                console.log(`Participant ${participant.name} already exists.`);
+                console.log(`⚠️ Participant ${participant.name} already exists.`);
             }
         }
     } catch (error) {
-        console.error("Error processing participants:", error);
+        console.error("❌ Error processing participants:", error);
     } finally {
         await client.close();
-        console.log("Done.");
+        console.log("✅ Done.");
     }
 }
+
 
 
 // testConnection();
 // fetchDocuments();
 //updateDocuments();
-addParticipants("participants.json", uri, "example_db", "example_db");
+addParticipants("datathon_participants.json", uri, "example_db", "example_db");
