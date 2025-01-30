@@ -1,0 +1,43 @@
+.wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.wrapper label{
+    font-size: 0.8rem;
+}
+
+.wrapper p{
+    font-size: 0.8rem;
+}
+
+.wrapper a{
+    font-size: 0.8rem;
+}
+
+.remember-forgot label{
+    margin-right: 0.6rem;
+}
+.wrapper div{
+    display:flex;
+    align-items: center;
+    margin-bottom: 0.8rem;
+}
+
+.submit-button {
+    width: 100%;
+    height: 100%;
+}
+
+.submit-button:hover{
+    background-color: rebeccapurple;
+}
+

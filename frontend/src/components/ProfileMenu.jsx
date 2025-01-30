@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'; 
+import { TiUser } from "react-icons/ti";
 import { useState, useEffect, useRef } from "react";
 import '../styles/ProfileMenu.css';
 import defaultUser from "../assets/unlogged-profile.svg";
@@ -31,13 +32,18 @@ const ProfileMenu = ({children, initialIsLogged}) => {
 
     return (
          <div ref={dropdownRef}>
-            <div className="profile-container"> 
-                <img 
-                    src= {isLogged ? userPhoto : defaultUser}
-                    alt="user" 
-                    className={`profile-image ${isLogged ? 'logged' : 'unlogged'}`}
-                    onClick={() => setProfileDropdown(!profileDropdown)}
-                />
+            <div className="profile-container" onClick={() => setProfileDropdown(!profileDropdown)}> 
+                {
+                    ( !isLogged && <TiUser className="profile-image unlogged"/> )
+                    ||
+                    (isLogged &&
+                    <img 
+                        src= {isLogged ? userPhoto : defaultUser}
+                        alt="user" 
+                        className="profile-image logged" 
+                    />
+                    )
+                }
             </div>
             <div className={`profile-dropdown ${profileDropdown ? 'active' : ''}`}>
                 
