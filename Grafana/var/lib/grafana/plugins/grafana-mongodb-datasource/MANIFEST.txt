@@ -1,0 +1,43 @@
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+{
+  "manifestVersion": "2.0.0",
+  "signatureType": "grafana",
+  "signedByOrg": "grafana",
+  "signedByOrgName": "Grafana Labs",
+  "plugin": "grafana-mongodb-datasource",
+  "version": "1.22.8",
+  "time": 1736538923182,
+  "keyId": "7e4d0c6a708866e7",
+  "files": {
+    "CHANGELOG.md": "480e74a2ff6ca7f71cbe491e26e874f7c41ae0a542341b60207b9dfa10360cc0",
+    "LICENSE": "3416968ea747b008ae1468587166834eda3c2ee53038d8a6b1ce40757725ec42",
+    "README.md": "711569121625c4d7e0565d92c5e4e1e2592773e0e9aca2662b224d20f7677ca6",
+    "dashboards/Mongo - Ad Hoc.json": "0af1a72f896c7dbd7124e29df394704f9afd7262a0431630a4d3ee51a3b02768",
+    "dashboards/Mongo Diagnostics.json": "8735e8498cca691a9441b6738e1b065ff55b68db633560e34a4d8911dee09af5",
+    "dashboards/Mongo Movie.json": "8d390acb6006256abd5edc8867fab192c7e460ee5e65caff408112223e106201",
+    "dashboards/Mongo Movies.json": "76885349d50a8d5e5437c9371744fa75ed68eebf882cbbb075e3b13b81af2515",
+    "go_plugin_build_manifest": "a27a6a2a3caeeebcdd00733ef86dee8e956b0cb0b96e0b94ee8b63c56dadd424",
+    "gpx_mongodb_linux_amd64": "42672e90947675068f7d48ab8c75aa1a7aa271cc1dfff7f2f044d6db8272825b",
+    "img/ad_hoc_filter.png": "d1aa2b6f0eff2e71758de20e129ac5bb37aa58f2f7fb260b5719b63f3077c993",
+    "img/mongodb-ar21.svg": "ede28d1b1bedba85cb141a0797c6f275fa6f2e3d59065fceba62af09691d441c",
+    "img/mongodb-icon.svg": "fc2c4477b8648a1ebdbd5a9f05a6cccb833d029dc651a09a74451931f3dca066",
+    "module.js": "f54b9ec27141b1d79f3707ffcb43b9a6c169883c3bbaf04bdf7e7bbf0e42c0da",
+    "module.js.LICENSE.txt": "2351d9cd6159f6e0e9f39071554065fa1c1849710d7f7e5e7a20d10179d9bec4",
+    "module.js.map": "b46e2e98fe66391b58319fe6a43cfb99ae9be6b07147d83c616a78db70354baf",
+    "plugin.json": "816d80e004d66ae2aa97ab83d07f9c85598ac6bc99111eed27a7e9414ed2e04a"
+  }
+}
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPGP.js v4.10.11
+Comment: https://openpgpjs.org
+
+wrkEARMKAAYFAmeBeysAIQkQfk0ManCIZucWIQTzOyW2kQdOhGNlcPN+TQxq
+cIhm54qEAgkAaev8zZhMFzMOd5DZG8ukJJXi8l29lyiiGzJa/oiWD7w5G1yI
+aEMpZbYclCjpTgD0vX589mZGk9AHF/WQvRpP4x0CCQA8WOy5dCZK2euwejfC
++TnNM5YSlEz73VLK5BXmj8Fo6dE6AxXUFeQepZLlk+FU1X2ztpWejaT5czSn
+fnHd2Pw0Hg==
+=Vqve
+-----END PGP SIGNATURE-----
