@@ -2,7 +2,7 @@ import pandas as pd
 import random as rd
 import numpy as np
 import re
-
+import ast
 
 from deap import base, creator, tools, algorithms
 from pathlib import Path
@@ -53,7 +53,7 @@ TAM_POBLACION = 100
 NUM_GENERACIONES = 50
 PROB_CRUCE = 0.7      # Probabilidad de cruce
 PROB_MUTACION = 0.2   # Probabilidad de mutación
-PONDERACIONES_TEST = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+PONDERACIONES_TEST = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
 class TeamFormation:
     # Equipos -> todos los equipos disponibles, 1 equipo es una lista de los id de los participantes (lsit(list(String)))
@@ -67,11 +67,11 @@ class TeamFormation:
     def __init__(self, Equipos, id_Usuario, Participantes, X_Equipos, Ponderaciones):
         self.Equipos = Equipos
         self.id_Usuario = id_Usuario
-        self.idParticipantes = Participantes["ID"].astype(str)
-        self.idParticipantes = Participantes
+        self.idParticipantes = Participantes["id"].tolist()
+        self.Participantes = Participantes
         self.X_Equipos = X_Equipos
         self.Ponderaciones = Ponderaciones
-        self.Universidades = set(Participantes["University"])
+        self.Universidades = set(Participantes["university"])
 
         self.EquiposValidos = [
             equipo for equipo in self.Equipos 
@@ -94,10 +94,14 @@ class TeamFormation:
         creado_por_usuario = True
 
         # Crear equipo nuevo con 1-3 miembros aleatorios + usuario objetivos
-        otros_usuarios = [
-            id for id in self.idParticipantes 
-            if id != self.id_Usuario and id not in self.EquiposValidos
-        ]
+        otros_usuarios = []
+        if len(self.EquiposValidos) != 0:
+            otros_usuarios = [
+                id for id in self.idParticipantes 
+                if id != self.id_Usuario and id not in self.EquiposValidos
+            ]
+        else: 
+            otros_usuarios = self.idParticipantes
 
         tam_equipo = rd.randint(1, 3)
         team = rd.sample(otros_usuarios, tam_equipo)
@@ -115,16 +119,16 @@ class TeamFormation:
         score = 0
         num_comparaciones = 0
 
-        edad_min = self.Participantes['Age'].min()
-        edad_max = self.Participantes['Age'].max()
+        edad_min = self.Participantes['age'].min()
+        edad_max = self.Participantes['age'].max()
 
         for i in range(len(team)):
             integrante1 = team[i]
             for j in range(i + 1, len(team)):
                 integrante2 = team[j]
 
-                edad1 = self.Participantes.loc[self.Participantes['ID'] == integrante1, 'Age'].values[0]
-                edad2 = self.Participantes.loc[self.Participantes['ID'] == integrante2, 'Age'].values[0]
+                edad1 = self.Participantes.loc[self.Participantes['id'] == integrante1, 'age'].values[0]
+                edad2 = self.Participantes.loc[self.Participantes['id'] == integrante2, 'age'].values[0]
 
                 diferencia_edad = abs(edad1 - edad2)
 
@@ -151,8 +155,8 @@ class TeamFormation:
             for j in range(i + 1, len(team)):
                 integrante2 = team[j]
 
-                year1 = self.Participantes.loc[self.Participantes['ID'] == integrante1, 'Year'].values[0]
-                year2 = self.Participantes.loc[self.Participantes['ID'] == integrante2, 'Year'].values[0]
+                year1 = self.Participantes.loc[self.Participantes['id'] == integrante1, 'year_of_study'].values[0]
+                year2 = self.Participantes.loc[self.Participantes['id'] == integrante2, 'year_of_study'].values[0]
 
                 diferencia_year = abs(YEAR_TO_INDEX[year1] - YEAR_TO_INDEX[year2])
 
@@ -176,13 +180,15 @@ class TeamFormation:
             for j in range(i + 1, len(team)):
                 integrante2 = team[j]
 
-                intereses1 = self.Participantes.loc[self.Participantes['ID'] == integrante1['ID'], 'Interests'].values[0]
-                intereses2 = self.Participantes.loc[self.Participantes['ID'] == integrante2['ID'], 'Interests'].values[0]
+                intereses1 = self.Participantes.loc[self.Participantes['id'] == integrante1, 'interests'].values[0]
+                intereses2 = self.Participantes.loc[self.Participantes['id'] == integrante2, 'interests'].values[0]
 
-                intereses1 = set(intereses1.split(", "))
-                intereses2 = set(intereses2.split(", "))
+                intereses1 = set(ast.literal_eval(intereses1))
+                intereses2 = set(ast.literal_eval(intereses2))
 
-                if not len(intereses1.union(intereses2)) == 0:
+                test = intereses1.intersection(intereses2)
+
+                if not len(intereses1.intersection(intereses2)) == 0:
                     score += len(intereses1.intersection(intereses2))/len(intereses1.union(intereses2))
             
                 total_intereses += 1
@@ -191,18 +197,23 @@ class TeamFormation:
         # Devolver el puntaje normalizado
         return score / total_intereses if total_intereses > 0 else 1.0
 
-    # Calcula las puntuaciones normalizadas de las Universidades entre los Participantes
+    # Calcula las puntuaciones normalizadas de las Universidades entre los Participantes #la tengo que cambiar
     def evaluar_Universidad(self, team) -> float:
         if len(team) == 1:
             return 1.0
         
-        score = 0
-        for part in team:
-            uni = self.Participantes.loc[self.Participantes['ID'] == part, 'University'].values[0]
-            if uni in self.Universidades:
-                score += 1
 
-        return score/len(team)
+        max = ['n', 0]
+        for i in range(len(team)):
+            uni1 = self.Participantes.loc[self.Participantes['id'] == team[i], 'university'].values[0]
+            act = [uni1, 1]
+            for j in range(i + 1, len(team)):
+                uni2 = self.Participantes.loc[self.Participantes['id'] == team[j], 'university'].values[0]
+                if uni1 == uni2:
+                    act[1] += 1
+            if max[1] < act[1]:
+                max = act
+        return max[1]/len(team)
 
     # Calcula las puntuaciones normalizadas de las preferencias entre los participantes
     def evaluar_Preferencia(self, team) -> float:
@@ -218,8 +229,8 @@ class TeamFormation:
             for j in range(i + 1, len(team)):
                 integrante2 = team[j]
 
-                preferencia1 = self.Participantes.loc[self.Participantes['ID'] == integrante1['ID'], 'Preferred Role'].values[0]
-                preferencia2 = self.Participantes.loc[self.Participantes['ID'] == integrante2['ID'], 'Preferred Role'].values[0]
+                preferencia1 = self.Participantes.loc[self.Participantes['id'] == integrante1, 'preferred_role'].values[0]
+                preferencia2 = self.Participantes.loc[self.Participantes['id'] == integrante2, 'preferred_role'].values[0]
 
                 if preferencia1 not in INVALID_PREFERENCIA and preferencia2 not in INVALID_PREFERENCIA:
                     if preferencia1 != preferencia2:
@@ -243,8 +254,8 @@ class TeamFormation:
             for j in range(i + 1, len(team)):
                 integrante2 = team[j]
 
-                experiencia1 = self.Participantes.loc[self.Participantes['ID'] == integrante1['ID'], 'Experience Level'].values[0]
-                experiencia2 = self.Participantes.loc[self.Participantes['ID'] == integrante2['ID'], 'Experience Level'].values[0]
+                experiencia1 = self.Participantes.loc[self.Participantes['id'] == integrante1, 'experience_level'].values[0]
+                experiencia2 = self.Participantes.loc[self.Participantes['id'] == integrante2, 'experience_level'].values[0]
 
                 if experiencia1 != experiencia2:
                     score += 1
@@ -258,10 +269,10 @@ class TeamFormation:
     def evaluar_Hackathons(self, team) -> float:
         score = 0
 
-        max_hackathons = self.Participantes['Hackathons Done'].max()
+        max_hackathons = self.Participantes['hackathons_done'].max()
     
         for integrante in team:
-            hackathons = self.Participantes.loc[self.Particiantes['ID'] == integrante['ID'], 'Hackathons Done'].values[0]
+            hackathons = self.Participantes.loc[self.Participantes['id'] == integrante, 'hackathons_done'].values[0]
             score += hackathons
 
         return score/ (max_hackathons * len(team))
@@ -269,9 +280,9 @@ class TeamFormation:
     def SimilitudTextos(self, embedding1, embedding2) -> float:
         return util.cos_sim(embedding1, embedding2).item()
 
-    def calculate_multiple_scores_with_parallelism(pairs):
+    def calculate_multiple_scores_with_parallelism(self, pairs):
         with ThreadPoolExecutor() as executor:
-            scores = list(executor.map(lambda pair: (pair[0], pair[1]), pairs))
+            scores = list(executor.map(lambda pair: self.SimilitudTextos(pair[0], pair[1]), pairs))
 
         return scores
 
@@ -286,16 +297,16 @@ class TeamFormation:
             for j in range(i + 1, len(team)):
                 integrante2 = team[j]
 
-                embedding1 = integrante1[evaluar]
-                embedding2 = integrante2[evaluar]
+                embedding1 = self.Participantes.loc[self.Participantes['id'] == integrante1, evaluar].values[0]
+                embedding2 = self.Participantes.loc[self.Participantes['id'] == integrante2, evaluar].values[0]
 
-                pairs.append((embedding1, embedding2))
+                pairs.append((ast.literal_eval(embedding1), ast.literal_eval(embedding2)))
 
         scores = self.calculate_multiple_scores_with_parallelism(pairs)
 
         return sum(scores) / len(scores)
     
-    # Calcula la interseccion de idiomas entre los participantes del equipo
+    # Calcula la interseccion de idiomas entre los participantes del equipo, arreglar aqui
     def evaluar_Idioma(self, team) -> float:
         if len(team) == 1:
             return 1.0  
@@ -303,9 +314,9 @@ class TeamFormation:
         idiomas_por_integrante = []
     
         for integrante in team:
-            idiomas = self.Participantes.loc[self.Participantes['ID'] == integrante['ID'], 'Preferred Languages']
+            idiomas = self.Participantes.loc[self.Participantes['id'] == integrante, 'preferred_languages']
             if idiomas.notna().any():  
-                idiomas = idiomas.values[0].split(", ")
+                idiomas = ast.literal_eval(idiomas.values[0])
                 idiomas_por_integrante.append(set(idiomas)) 
 
         if not idiomas_por_integrante:  
@@ -338,10 +349,10 @@ class TeamFormation:
         tmb = len(team)
         for i in range(len(team)):
             integrante1 = team[i]
-            amigos1 = set(self.Participantes.loc[self.Participantes['ID'] == integrante1['ID'], 'Friend Registration'].values[0].split(", "))
+            amigos1 = set(ast.literal_eval(self.Participantes.loc[self.Participantes['id'] == integrante1, 'friend_registration'].values[0]))
             for j in range(i + 1, len(team)):
                 integrante2 = team[j]
-                if integrante2['ID'] in amigos1:
+                if integrante2 in amigos1:
                     score += 1          
     
         return score / tmb if tmb > 0 else 1.0
@@ -353,7 +364,7 @@ class TeamFormation:
 
         media = 0
         for integrante in team:
-            media += self.Participantes.loc[self.Participantes['ID'] == integrante['ID'], 'Preferred Team Size'].values[0]
+            media += self.Participantes.loc[self.Participantes['id'] == integrante, 'preferred_team_size'].values[0]
 
         media = media / len(team)
         diff = abs(media - len(team))
@@ -375,8 +386,8 @@ class TeamFormation:
             for j in range(i + 1, len(team)):
                 integrante2 = team[j]
 
-                disponibilidad1 = self.Participantes.loc[self.Participantes['ID'] == integrante1['ID'], 'Availability'].values[0]
-                disponibilidad2 = self.Participantes.loc[self.Participantes['ID'] == integrante2['ID'], 'Availability'].values[0]
+                disponibilidad1 = self.Participantes.loc[self.Participantes['id'] == integrante1, 'availability'].values[0]
+                disponibilidad2 = self.Participantes.loc[self.Participantes['id'] == integrante2, 'availability'].values[0]
 
                 if disponibilidad1 == disponibilidad2:
                     score += 1
@@ -385,13 +396,25 @@ class TeamFormation:
 
         return score / total_comparaciones if total_comparaciones > 0 else 1.0
 
-    def evaluar_Skills(self, team) -> float:
+    def evaluar_Skills(self, team) -> float: #Corregir esta funcion
         team_skills = []
         for integrante in team:
-            data = str(self.Participante.loc[self.Participante['ID'] == integrante['ID'], 'Programming Skills'].values[0])
-            pares = re.findall(r'([^:,]+): (\d+)', data)
-            skills = [(habilidad.strip(), int(nivel)) for habilidad, nivel in pares]
-            team_skills.extend(skills)
+            data = str(self.Participantes.loc[self.Participantes['id'] == integrante, 'programming_skills'].values[0])
+
+            data = data.strip('{}')
+            items = [item.strip() for item in data.split(',')]
+
+            result = []
+            for item in items:
+                # Split key and value
+                key, value = item.split(':')
+                # Clean and strip quotes
+                key = key.strip().strip('"\'')
+                value = value.strip().strip('"\'')
+                dentro = [key, int(value)]
+                result.append(frozenset(dentro))
+
+            team_skills.extend(result)
     
         if not team_skills:
             return 0
@@ -429,13 +452,13 @@ class TeamFormation:
         score += self.evaluar_Preferencia(team) * self.Ponderaciones[4]
         score += self.evaluar_Experiencia(team) * self.Ponderaciones[5]
         score += self.evaluar_Hackathons(team) * self.Ponderaciones[6]
-        score += self.evaluar_Textos(team, 'ember_obj') * self.Ponderaciones[7]
-        score += self.evaluar_Textos(team, 'ember_intr') * self.Ponderaciones[8]
-        score += self.evaluar_Textos(team, 'ember_excitement') * self.Ponderaciones[9]
+        score += self.evaluar_Textos(team, "ember_obj") * self.Ponderaciones[7]
+        score += self.evaluar_Textos(team, "ember_intr") * self.Ponderaciones[8]
+        score += self.evaluar_Textos(team, "ember_excitement") * self.Ponderaciones[9]
         score += self.evaluar_Idioma(team) * self.Ponderaciones[10]
         score += self.evaluar_Friend(team) * self.Ponderaciones[11]
         score += self.evaluar_PreferedSize(team) * self.Ponderaciones[12]
-        score += self.evaluar_Availability(team) * self.Ponderaciones[13]
+        score += self.evaluar_Availability(team) * self.Ponderaciones[13] #se puede mejorar
         score += self.evaluar_Skills(team) * self.Ponderaciones[14]
         
         return score
@@ -458,7 +481,7 @@ class TeamFormation:
         compatibilidadUsuarioEquipo = 0.7
         compatibilidadEquipo = 0.3
 
-        for i in len(equipo) - 1 : 
+        for i in range(len(equipo) - 1) : 
             if equipo[i] != usuario: 
                 team.append(equipo[i])
 
@@ -581,11 +604,11 @@ class TeamFormation:
 
     def configDeap(self):
         # Funcion que crea a un individuo
-        self.toolbox.register("individual", tools.initIterate, creator.Individual, self.crearIndividuo())
+        self.toolbox.register("individual", tools.initIterate, creator.Individual, self.crearIndividuo)
         # Funcion que crea a la poblacion
         self.toolbox.register("population", tools.initRepeat, list, self.toolbox.individual)
         # Funcion que evalua al equipo, basicamente el calculador del score o fitness
-        self.toolbox.register("evaluate", self.evaluarEquipo(self.Equipos))
+        self.toolbox.register("evaluate", self.evaluarEquipo)
         # Funcion de combinación
         self.toolbox.register("mate", self.crossover_teams)
         # Funcion de mutación
@@ -680,7 +703,7 @@ class TeamFormation:
 
 
 try:
-    path = get_path_csv("Data")
+    path = get_path_csv("output")
     datos = pd.read_csv(path)
     
     test = TeamFormation([], "2ebad15c-c0ef-4c04-ba98-c5d98403a90c", datos, 5, PONDERACIONES_TEST)
