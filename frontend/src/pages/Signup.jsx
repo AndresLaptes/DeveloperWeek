@@ -2,11 +2,22 @@ import { useState } from "react";
 import PersonalInfoForm from "../components/PersonalInfoForm";
 import ParticipantInfoFormAcademic from "../components/ParticipantInfoFormAcademic";
 import ParticipantInfoFormTech from "../components/ParticipantInfoFormTech";
+
+import "../styles/SignUp.css"
+
 const TOTAL_PAGES = 3;
 
+//TODO -> MAKE SUBMIT BUTTON APPEAR ONLY WHEN ALL FIELDS FROM ALL FORMS ARE FILLED OR VALIDATED 
 const Signup = () => {
-    const [currentPage, setPage] = useState(1);
+    const [currentPage, setPage] = useState(0);
     const [formData, setFormData] = useState({
+        personal: {
+            fname: '',
+            lname: '',
+            username: '',
+            email: '',
+            password: ''
+        },
         academic: {
             age: '',
             studyYear: '',
@@ -58,30 +69,30 @@ const Signup = () => {
 
     return (
         <div className="signUpPage">
-            {currentPage === 1 ? (
-                <PersonalInfoForm  //TODO
-                    formData={formData.personal} 
-                    setFormData={updatePersonalForm} 
-                />
-            ) : currentPage === 2 ? (
-                <ParticipantInfoFormAcademic 
-                    formData={formData.academic} 
-                    setFormData={updateAcademicForm} 
-                />
-            ) : (
-                <ParticipantInfoFormTech 
-                    formData={formData.tech} 
-                    setFormData={updateTechForm} 
-                />
-            )}
-            <div className="preferences">
+            <div className="signUpContainer">
+                {currentPage + 1 === 1 ? (
+                    <PersonalInfoForm  
+                        formData={formData.personal} 
+                        setFormData={updatePersonalForm} 
+                    />
+                ) : currentPage === 2 ? (
+                    <ParticipantInfoFormAcademic 
+                        formData={formData.academic} 
+                        setFormData={updateAcademicForm} 
+                    />
+                ) : (
+                    <ParticipantInfoFormTech 
+                        formData={formData.tech} 
+                        setFormData={updateTechForm} 
+                    />
+                )}
+                <div className="FormButtons">
+                        <button className="formBtn"  disabled = {currentPage === 0} onClick={() => setPage((currentPage - 1) % 3)}>Go Back</button>
+                        <button className="formBtn"onClick={ () => setPage((currentPage + 1) % 3)}>Go Next</button>
+                </div>
+                <button type="submit" onClick={handleSubmit}>Submit</button>
+                <p>{currentPage + 1} / {TOTAL_PAGES}</p>
             </div>
-            <div className="FormButtons">
-                    <button className="formBtn" onClick={() => setPage(currentPage - 1)}>go back</button>
-                    <button className="formBtn" onClick={ () => setPage(currentPage + 1)}>go next</button>
-            </div>
-            <button type="submit" onClick={handleSubmit}>Submit</button>
-            <p>{currentPage} / {TOTAL_PAGES}</p>
         </div>
     );
 };

@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import "../styles/MultipleSelector.css"
 //value = {optionName, level of skill} -> level of skill by default is 1, but it can be modified for those with showSlider on true
 const MultipleSelector = ({ onChange, showSlider = true, values, selectorName }) => {
     const [selectedValues, setSelectedValues] = useState([]);
@@ -41,31 +41,32 @@ const MultipleSelector = ({ onChange, showSlider = true, values, selectorName })
     };
   
     return (
-        <div>
-            {selectedValues.map((value, index) => (
-                <div key={index} style={{ marginBottom: "10px" }}>
-                    <div>
-                        <p>{value.optionName}</p>
-                        {showSlider && (
-                            <>
-                                <input
-                                    type="range"
-                                    min="1"
-                                    max="10"
-                                    value={value.level}
-                                    onChange={(e) => handleLevelChange(index, e.target.value)}
-                                />
-                                <span>{value.level}</span>
-                            </>
-                        )}
+        <div className="multipleSelector-container">
+            <div className="selectedItems">
+                {selectedValues.map((value, index) => (
+                    <div key={index} className="selected-item">
+                        <div>
+                            <p>{value.optionName}</p>
+                            {showSlider && (
+                                <div className="slider-container">
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="10"
+                                        value={value.level}
+                                        onChange={(e) => handleLevelChange(index, e.target.value)}
+                                    />
+                                    <span>{value.level}</span>
+                                </div>
+                            )}
+                        </div>
+                        <button className="remove-btn" type="button" onClick={() => handleRemoveValue(value)}>
+                            ❌ Remove
+                        </button>
                     </div>
-                    <button type="button" onClick={() => handleRemoveValue(value)}>
-                        ❌ Remove
-                    </button>
-                </div>
-            ))}
-
-            <select
+                ))}
+            </div>
+            <select     className="selector-dropdown"
                         value=""
                         onChange={(e) => handleFieldSelected(e.target.value)}
             >
