@@ -8,6 +8,7 @@ import "../styles/SignUp.css"
 const TOTAL_PAGES = 3;
 
 //TODO -> MAKE SUBMIT BUTTON APPEAR ONLY WHEN ALL FIELDS FROM ALL FORMS ARE FILLED OR VALIDATED 
+//TODO -> MAKE PROGRESS BAR (EACH 1/3 IS WHEN ONE FORM GETS COMPLETED)
 const Signup = () => {
     const [currentPage, setPage] = useState(0);
     const [formData, setFormData] = useState({
