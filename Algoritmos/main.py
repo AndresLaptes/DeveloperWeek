@@ -3,6 +3,8 @@ import random as rd
 import numpy as np
 import re
 import ast
+import time
+
 
 from deap import base, creator, tools, algorithms
 from pathlib import Path
@@ -49,8 +51,8 @@ YEAR_TO_INDEX = {year: index for index, year in enumerate(YEARS)}
 INVALID_PREFERENCIA = set(["Don't know", "Don't care"])
 
 # Parámetros del algoritmo genético
-TAM_POBLACION = 100
-NUM_GENERACIONES = 50
+TAM_POBLACION = 30
+NUM_GENERACIONES = 15
 PROB_CRUCE = 0.7      # Probabilidad de cruce
 PROB_MUTACION = 0.2   # Probabilidad de mutación
 PONDERACIONES_TEST = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
@@ -396,44 +398,45 @@ class TeamFormation:
 
         return score / total_comparaciones if total_comparaciones > 0 else 1.0
 
-    def evaluar_Skills(self, team) -> float: #Corregir esta funcion
+    def evaluar_Skills(self, team) -> float:
+        if not team:
+            return 0
+        
         team_skills = []
         for integrante in team:
-            data = str(self.Participantes.loc[self.Participantes['id'] == integrante, 'programming_skills'].values[0])
-
-            data = data.strip('{}')
-            items = [item.strip() for item in data.split(',')]
-
-            result = []
-            for item in items:
-                # Split key and value
-                key, value = item.split(':')
-                # Clean and strip quotes
-                key = key.strip().strip('"\'')
-                value = value.strip().strip('"\'')
-                dentro = [key, int(value)]
-                result.append(frozenset(dentro))
-
-            team_skills.extend(result)
+            skills_data = str(self.Participantes.loc[self.Participantes['id'] == integrante, 'programming_skills'].values[0])
+        
+            skills_data = skills_data.strip('{}')
+        
+            if not skills_data:
+                continue
+            
+            pairs = [pair.strip() for pair in skills_data.split(',')]
+        
+            for pair in pairs:
+                skill, level = pair.split(':')
+            
+                skill = skill.strip().strip('"\'')
+                level = int(level.strip().strip('"\''))
+            
+                team_skills.append((skill, level))
     
         if not team_skills:
             return 0
     
         skill_counts = {}
         skill_levels = {}
+    
         for skill, level in team_skills:
             skill_counts[skill] = skill_counts.get(skill, 0) + 1
             skill_levels[skill] = max(skill_levels.get(skill, 0), level)
     
         total_skills = len(team_skills)
         unique_skills = len(skill_counts)
-        diversity_score = unique_skills / total_skills 
     
-        level_scores = []
-        for skill, level in skill_levels.items():
-            level_score = level / 10 
-            level_scores.append(level_score)
+        diversity_score = unique_skills / total_skills
     
+        level_scores = [level / 10 for level in skill_levels.values()]
         avg_level_score = sum(level_scores) / len(level_scores) if level_scores else 0
     
         final_score = (diversity_score * 0.6) + (avg_level_score * 0.4)
@@ -498,34 +501,26 @@ class TeamFormation:
         team1_ids, _ = team1
         team2_ids, _ = team2
     
-        # Remover temporalmente al usuario objetivo para hacer el cruce
         team1_without_target = [id for id in team1_ids if id != self.id_Usuario]
         team2_without_target = [id for id in team2_ids if id != self.id_Usuario]
     
-        # Crear pools de miembros potenciales
         all_members = list(set(team1_without_target + team2_without_target))
     
         if len(all_members) < 2:
-            # Si no hay suficientes miembros para cruzar, devolver los equipos originales
             return team1, team2
     
-        # Crear dos nuevos equipos
         new_team1 = []
         new_team2 = []
     
-        # Determinar tamaños aleatorios para los nuevos equipos (1-3 miembros + usuario objetivo)
         size1 = rd.randint(1, min(3, len(all_members)))
         size2 = rd.randint(1, min(3, len(all_members)))
     
-        # Seleccionar miembros aleatoriamente para cada equipo
         if all_members:
             new_team1 = rd.sample(all_members, size1)
-            # Remover los miembros seleccionados para el segundo equipo
             remaining_members = [m for m in all_members if m not in new_team1]
             if remaining_members:
                 new_team2 = rd.sample(remaining_members, min(size2, len(remaining_members)))
     
-        # Añadir el usuario objetivo a ambos equipos
         new_team1.append(self.id_Usuario)
         new_team2.append(self.id_Usuario)
     
@@ -534,7 +529,6 @@ class TeamFormation:
     def mutate_team(self, team: tuple) -> tuple:
         team_ids, _ = team
     
-        # Obtener usuarios disponibles que no están en el equipo actual
         available_users = [
             id for id in self.idParticipantes 
             if id != self.id_Usuario and 
@@ -545,37 +539,29 @@ class TeamFormation:
         if not available_users:
             return team
     
-        # Remover usuario objetivo temporalmente
         current_team = [id for id in team_ids if id != self.id_Usuario]
     
-        # Decidir si añadir o reemplazar un miembro (50% probabilidad cada uno)
         if rd.random() < 0.5 and len(current_team) < 3:
-            # Añadir un nuevo miembro si hay espacio
             current_team.append(rd.choice(available_users))
         elif current_team:
-            # Reemplazar un miembro existente
             idx_to_replace = rd.randrange(len(current_team))
             current_team[idx_to_replace] = rd.choice(available_users)
     
-        # Añadir el usuario objetivo de nuevo
         current_team.append(self.id_Usuario)
     
         return (current_team, True)
 
     def select_teams(self, population, k):
         def tournament_selection(tournament_pool):
-            # Si el torneo es más pequeño que 3, usar todos los disponibles
             if len(tournament_pool) < 3:
                 tournament = tournament_pool
             else:
                 tournament = rd.sample(tournament_pool, 3)
         
-            # Evaluar cada equipo en el torneo usando la función existente
             best_team = None
             best_score = float('-inf')
         
             for team in tournament:
-                # La función evaluarEquipo devuelve una tupla con un solo valor
                 score = self.evaluarEquipo(team[0])[0]
             
                 if score > best_score:
@@ -585,18 +571,15 @@ class TeamFormation:
             return best_team
     
         selected = []
-        # Hacer una copia de la población para no modificar la original
         available_teams = population.copy()
     
         for _ in range(k):
             if not available_teams:
                 break
             
-            # Seleccionar el mejor equipo del torneo
             selected_team = tournament_selection(available_teams)
             selected.append(selected_team)
         
-            # Remover el equipo seleccionado de los disponibles
             if selected_team in available_teams:
                 available_teams.remove(selected_team)
     
@@ -617,76 +600,87 @@ class TeamFormation:
         self.toolbox.register("select", self.select_teams)
 
     def encontrar_mejores_equipos(self) -> List[tuple]:
+        
     
-        # Crear población inicial
-        poblacion = self.toolbox.population(n=TAM_POBLACION)
+        cache_evaluaciones = {}
     
-        # Evaluar población inicial
-        for ind in poblacion:
-            ind.fitness.values = self.toolbox.evaluate(ind[0])
+        def evaluar_con_cache(equipo):
+            equipo_tuple = tuple(sorted(equipo[0]))
+            if equipo_tuple not in cache_evaluaciones:
+                cache_evaluaciones[equipo_tuple] = self.toolbox.evaluate(equipo[0])
+            return cache_evaluaciones[equipo_tuple]
+
+        poblacion = []
+        used_teams = set()
     
-        # Almacenar el mejor equipo encontrado hasta el momento
+        while len(poblacion) < TAM_POBLACION:
+            ind = self.toolbox.individual()
+            team_tuple = tuple(sorted(ind[0]))
+        
+            if team_tuple not in used_teams:
+                used_teams.add(team_tuple)
+                ind.fitness.values = evaluar_con_cache(ind)
+                poblacion.append(ind)
+
         mejor_equipo = tools.selBest(poblacion, k=1)[0]
         mejor_fitness = mejor_equipo.fitness.values[0]
-    
-        # Lista para almacenar los mejores equipos únicos encontrados
+
         mejores_equipos = set()
-    
-        # Evolución
+        umbral_calidad = 0.7  
+
+        generaciones_sin_mejora = 0
+        max_generaciones_sin_mejora = 5
+
         for gen in range(NUM_GENERACIONES):
-            # Seleccionar padres para la siguiente generación
+            if generaciones_sin_mejora >= max_generaciones_sin_mejora:
+                break
+
             descendientes = self.toolbox.select(poblacion, len(poblacion))
             descendientes = list(map(self.toolbox.clone, descendientes))
-        
-            # Aplicar cruce
+
             for i in range(0, len(descendientes), 2):
-                if i + 1 < len(descendientes) and rd.random() < PROB_CRUCE:
-                    descendientes[i], descendientes[i+1] = self.toolbox.mate(
-                        descendientes[i], descendientes[i+1]
-                    )
-                    # Invalidar fitness de los hijos modificados
-                    del descendientes[i].fitness.values
-                    del descendientes[i+1].fitness.values
-        
-            # Aplicar mutación
+                if i + 1 < len(descendientes):
+                    if rd.random() < PROB_CRUCE:
+                        hijo1, hijo2 = self.toolbox.mate(descendientes[i], descendientes[i+1])
+                        descendientes[i] = creator.Individual(hijo1)
+                        descendientes[i+1] = creator.Individual(hijo2)
+                        descendientes[i].fitness.values = evaluar_con_cache(descendientes[i])
+                        descendientes[i+1].fitness.values = evaluar_con_cache(descendientes[i+1])
+
             for i in range(len(descendientes)):
                 if rd.random() < PROB_MUTACION:
-                    descendientes[i] = self.toolbox.mutate(descendientes[i])
-                    del descendientes[i].fitness.values
-        
-            # Evaluar individuos con fitness invalidado
-            for ind in descendientes:
-                if not ind.fitness.valid:
-                    ind.fitness.values = self.toolbox.evaluate(ind[0])
-        
-            # Actualizar la población
-            poblacion[:] = descendientes
-        
-            # Actualizar mejor equipo encontrado
+                    mutado = self.toolbox.mutate(descendientes[i])
+                    descendientes[i] = creator.Individual(mutado)
+                    descendientes[i].fitness.values = evaluar_con_cache(descendientes[i])
+
+            mejores_padres = tools.selBest(poblacion, k=5)
+            poblacion = descendientes
+            poblacion.extend(mejores_padres)
+            poblacion = tools.selBest(poblacion, k=TAM_POBLACION)
+
             mejor_actual = tools.selBest(poblacion, k=1)[0]
             if mejor_actual.fitness.values[0] > mejor_fitness:
                 mejor_equipo = mejor_actual
                 mejor_fitness = mejor_actual.fitness.values[0]
-        
-            # Almacenar equipos únicos que superen cierto umbral
+                generaciones_sin_mejora = 0
+            else:
+                generaciones_sin_mejora += 1
+
             for ind in poblacion:
-                if ind.fitness.values[0] >= 0.8:  # Umbral de calidad
-                    equipo_tuple = tuple(sorted(ind[0]))  # Convertir a tupla para poder añadirlo al set
+                if ind.fitness.values[0] >= umbral_calidad:
+                    equipo_tuple = tuple(sorted(ind[0]))
                     mejores_equipos.add((equipo_tuple, ind[1]))
-        
-            # Opcional: Imprimir progreso
-            if gen % 10 == 0:
-                print(f"Generación {gen}: Mejor Fitness = {mejor_fitness:.3f}")
-    
-        # Convertir los mejores equipos encontrados a lista y ordenarlos por fitness
+
+                if len(mejores_equipos) >= self.X_Equipos * 2:
+                    break
+
         mejores_equipos_lista = list(mejores_equipos)
         mejores_equipos_lista.sort(
-            key=lambda x: self.toolbox.evaluate(x[0])[0], 
+            key=lambda x: cache_evaluaciones[tuple(sorted(x[0]))][0],
             reverse=True
         )
-    
-        # Retornar los N mejores equipos únicos encontrados
-        return mejores_equipos_lista[:self.X_Equipos]  
+
+        return mejores_equipos_lista[:self.X_Equipos]
 
     def ejecutar_busqueda_equipos(self):
         mejores_equipos = self.encontrar_mejores_equipos()
@@ -700,14 +694,18 @@ class TeamFormation:
                     print(f"- {id_miembro} (Usuario objetivo)")
                 else:
                     print(f"- {id_miembro}")
+        return mejores_equipos
 
 
 try:
+    start_time = time.time()
     path = get_path_csv("output")
     datos = pd.read_csv(path)
     
     test = TeamFormation([], "2ebad15c-c0ef-4c04-ba98-c5d98403a90c", datos, 5, PONDERACIONES_TEST)
     test.ejecutar_busqueda_equipos()
-    
+    end_time = time.time() 
+    elapsed_time_ms = (end_time - start_time) * 1000  
+    print(f"Tiempo de ejecución: {elapsed_time_ms:.2f} ms")
 except Exception as e:
     print("Error al procesar el archivo:", e)
