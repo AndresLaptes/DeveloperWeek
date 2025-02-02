@@ -27,23 +27,6 @@ def get_path_csv(filename):
     
     return file_path
 
-def generateRandomTeams(datos):
-    num = rd.randint(1, 20)
-    teams = []
-
-    Used = set()
-    for i in range(num):
-        team = []
-        num_eq = rd.randint(1, 4)
-        for j in range(num_eq):
-            pos = rd.randint(0, len(datos) - 1)
-            if pos not in Used:
-                team.append(datos.iloc[pos])
-                Used.add(pos)
-        teams.append(team)
-
-    return teams
-
 
 MAX_NUM_PARTNERS = 4
 YEARS = ['1st year', '2nd year', '3rd year', '4th year', 'Masters', 'PhD']
@@ -67,11 +50,12 @@ class TeamFormation:
     # en caso contrario si es negativo se minimizara, cuando mayor sean en cada caso los numeros tanto positivos
     # o negativos mayor prioridad tendran
     def __init__(self, Equipos, id_Usuario, Participantes, X_Equipos, Ponderaciones):
+        self.inicializar_modelo(Participantes)
+        
         self.Equipos = Equipos
         self.edad_min = Participantes['age'].min()
         self.id_Usuario = id_Usuario
         self.idParticipantes = Participantes["id"].tolist()
-        self.Participantes = Participantes
         self.X_Equipos = X_Equipos
         self.edad_max = self.Participantes['age'].max()
         self.Ponderaciones = Ponderaciones
@@ -92,6 +76,9 @@ class TeamFormation:
 
         except Exception as e:
             print("Error al procesar el archivo:", e)
+
+    def inicializar_modelo(self, Participantes):
+        self.idUsuarios = 
 
     # Función que crea a un individuo
     def crearIndividuo(self) -> tuple:
