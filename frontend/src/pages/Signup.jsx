@@ -3,6 +3,8 @@ import PersonalInfoForm from "../components/PersonalInfoForm";
 import ParticipantInfoFormAcademic from "../components/ParticipantInfoFormAcademic";
 import ParticipantInfoFormTech from "../components/ParticipantInfoFormTech";
 
+import axios from "axios";
+
 import "../styles/SignUp.css"
 
 const TOTAL_PAGES = 3;
@@ -63,9 +65,13 @@ const Signup = () => {
         }));
     }
 
-    const handleSubmit = () => {
-        console.log('Combined form data:', formData);
-        //backend code to send to BD
+    const handleSubmit = async () => {    
+        try {
+            const response = await axios.post("http://localhost:3000/save-data", formData);
+            console.log("Data sent successfully:", response.data);
+        } catch (error) {
+            console.error("Error sending data:", error);
+        }
     };
 
     return (
