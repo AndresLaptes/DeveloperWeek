@@ -2,12 +2,9 @@ import { useEffect, useState } from "react";
 import { animate, useMotionValue, motion, useTransform } from "framer-motion";
 import FloatingCards from "../components/FloatingContainer";
 import CustomButton from "../components/CustomButton";
+import PreferencesForm from "../components/PreferencesForm/PreferencesForm";
 import "../styles/Home.css";
 
-
-const PreferencesForm = () => {
-    return (<p>form</p>)
-};
 const FloatingInfo = () => {
     return (<p>info</p>)
 };
