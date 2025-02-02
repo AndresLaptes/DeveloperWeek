@@ -1,0 +1,93 @@
+
+.form-container {
+    width: 80%;
+    max-width: 600px;
+    padding: 2rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.formGroupContainer {
+    width: 100%;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 0.7rem;
+}
+
+.formGroup label {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #444;
+}
+
+.formGroup input, 
+.formGroup select, 
+.formGroup textarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    transition: border-color 0.3s ease;
+}
+
+.formGroup textarea {
+    resize: vertical;
+    width: 80%;
+}
+
+.formGroup input {
+    width: 80%;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus,
+.formGroup select:focus {
+    outline: none;
+    border-color: #FF8C00;
+}
+.formGroup input:hover {
+    border-color: #FF8C00;
+}
+.formGroup input.invalid {
+    border-color: #ff4444;
+}
+
+.FormButtons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 600px;
+}
+
+.FormButtons button {
+    width: 48%;
+}
+
+.formGroup .slider{
+    width: 100%;
+    height: 5px;
+    background-color: #cdd9ed;
+    margin-top: 20px;
+    border-radius: 5%;
+}
+
+.slider .thumb {
+    width: 23px;
+    height: 23px;
+    cursor: grab;
+    background: #fff;
+    border: 2px solid black;
+    border-radius: 50%;
+    top: -10px
+}
