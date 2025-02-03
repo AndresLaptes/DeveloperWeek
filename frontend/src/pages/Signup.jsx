@@ -66,9 +66,17 @@ const Signup = () => {
     }
 
     const handleSubmit = async () => {    
+        console.log("a");
         try {
-            const response = await axios.post("http://localhost:3000/save-data", formData);
-            console.log("Data sent successfully:", response.data);
+            console.log("a");
+
+            const response = await axios.post("http://localhost:3000/user/register", formData, {
+                headers: {
+                    'Content-Type':  'application/json'
+                }
+            }
+        );
+            if (response.data.succes)console.log("Regis. successfully:", response.data);
         } catch (error) {
             console.error("Error sending data:", error);
         }

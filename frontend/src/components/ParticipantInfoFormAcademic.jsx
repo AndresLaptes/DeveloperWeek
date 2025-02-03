@@ -69,7 +69,6 @@ const ParticipantInfoFormAcademic = ({formData, setFormData}) => {
                         <SingleSelector
                             onChange={(value) => setFormData({ ...formData, studyYear: value })}
                             values={yearList}
-                            showSlider={false}
                             selectorName={"Year of Study"}
                         />
                     </div>
@@ -78,7 +77,6 @@ const ParticipantInfoFormAcademic = ({formData, setFormData}) => {
                         <SingleSelector
                             onChange={(value) => setFormData({ ...formData, university: value })}
                             values={universitiesList}
-                            showSlider={false}
                             selectorName={"University"}
                         />
                     </div>
