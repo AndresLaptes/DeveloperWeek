@@ -1,0 +1,11 @@
+BACKEND TODO:
+- Validate correctly the signup data before saving it to the BD
+- Investigate how to optimize the collections of the BD -> maybe the user collection doesn't need all params for the search,
+                                                           it can be stored in two separated collections
+- Use JWT and other things to log in and keep up a session
+
+FRONTEND TODO:
+- Fix forms (validating at least that not all fields are empty)
+- Make submit button appear only when certain reqs are done
+- Progress bar?
+- Delete level value from unused selectors
