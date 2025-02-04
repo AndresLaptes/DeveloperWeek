@@ -2,9 +2,11 @@ from pathlib import Path
 import numpy as np
 import time
 import orjson
-import math
 import random as rd
-from deap import base, creator, tools, algorithms
+from typing import List
+from deap import base, creator, tools
+from sentence_transformers import util
+from concurrent.futures import ThreadPoolExecutor
 
 MAX_NUM_PARTNERS = 4
 YEARS = ['1st year', '2nd year', '3rd year', '4th year', 'Masters', 'PhD']
@@ -44,15 +46,24 @@ class TeamFormation:
         self.idParticipantes = []
         self.edad_min = float('-inf')
         self.edad_max = float('inf')
+        self.max_hackathons = float('-inf')
+
+        self.EquiposValidos = [
+            equipo for equipo in self.Equipos 
+            if self.id_Usuario not in equipo and len(equipo) >= 1 and len(equipo) < MAX_NUM_PARTNERS
+        ]
 
         for participante in self.data.values():
             self.idParticipantes.append(participante["id"])
             
             edad_act = participante["age"]
+            hack = participante["hackathons_done"]
             if self.edad_min < edad_act :
                 self.edad_min = edad_act 
             if self.edad_max > edad_act : 
                 self.edad_max = edad_act 
+            if self.max_hackathons < hack:
+                self.max_hackathons = hack
 
     def crearIndividuo(self) -> tuple:
         creado_por_usuario = True
@@ -88,6 +99,95 @@ class TeamFormation:
         # Funcion de selección
         self.toolbox.register("select", self.select_teams)
 
+    def crossover_teams(self, team1: tuple, team2: tuple) -> tuple:
+        
+        team1_ids, _ = team1
+        team2_ids, _ = team2
+    
+        team1_without_target = [id for id in team1_ids if id != self.id_Usuario]
+        team2_without_target = [id for id in team2_ids if id != self.id_Usuario]
+    
+        all_members = list(set(team1_without_target + team2_without_target))
+    
+        if len(all_members) < 2:
+            return team1, team2
+    
+        new_team1 = []
+        new_team2 = []
+    
+        size1 = rd.randint(1, min(3, len(all_members)))
+        size2 = rd.randint(1, min(3, len(all_members)))
+    
+        if all_members:
+            new_team1 = rd.sample(all_members, size1)
+            remaining_members = [m for m in all_members if m not in new_team1]
+            if remaining_members:
+                new_team2 = rd.sample(remaining_members, min(size2, len(remaining_members)))
+    
+        new_team1.append(self.id_Usuario)
+        new_team2.append(self.id_Usuario)
+    
+        return (new_team1, True), (new_team2, True)
+
+    def mutate_team(self, team: tuple) -> tuple:
+        team_ids, _ = team
+    
+        available_users = [
+            id for id in self.idParticipantes 
+            if id != self.id_Usuario and 
+            id not in self.EquiposValidos and 
+            id not in team_ids
+        ]
+    
+        if not available_users:
+            return team
+    
+        current_team = [id for id in team_ids if id != self.id_Usuario]
+    
+        if rd.random() < 0.5 and len(current_team) < 3:
+            current_team.append(rd.choice(available_users))
+        elif current_team:
+            idx_to_replace = rd.randrange(len(current_team))
+            current_team[idx_to_replace] = rd.choice(available_users)
+    
+        current_team.append(self.id_Usuario)
+    
+        return (current_team, True)
+
+    def select_teams(self, population, k):
+        def tournament_selection(tournament_pool):
+            if len(tournament_pool) < 3:
+                tournament = tournament_pool
+            else:
+                tournament = rd.sample(tournament_pool, 3)
+        
+            best_team = None
+            best_score = float('-inf')
+        
+            for team in tournament:
+                score = self.evaluarEquipo(team[0])[0]
+            
+                if score > best_score:
+                    best_score = score
+                    best_team = team
+        
+            return best_team
+    
+        selected = []
+        available_teams = population.copy()
+    
+        for _ in range(k):
+            if not available_teams:
+                break
+            
+            selected_team = tournament_selection(available_teams)
+            selected.append(selected_team)
+        
+            if selected_team in available_teams:
+                available_teams.remove(selected_team)
+    
+        return selected
+
     def evaluarEquipo(self, equipo: tuple) -> tuple:
         usuario = self.id_Usuario
         team = list()
@@ -95,7 +195,7 @@ class TeamFormation:
         compatibilidadUsuarioEquipo = 0.7
         compatibilidadEquipo = 0.3
 
-        for i in range(len(equipo) - 1) : 
+        for i in range(len(equipo)) : 
             if equipo[i] != usuario: 
                 team.append(equipo[i])
 
@@ -136,6 +236,134 @@ class TeamFormation:
         
         return score
 
+    def evaluar_Edad(self, info) -> float:
+        if len(info) == 1:
+            return 0.0
+
+        score = 0
+        num_comparaciones = 0
+
+        for i in range(len(info)):
+            edad1 = float(self.get_column_value(info[i], "age"))
+            for j in range(i + 1, len(info)):
+                edad2 = float(self.get_column_value(info[j], "age"))
+
+                diferencia_edad = abs(edad1 - edad2)
+
+                score += 1 - (diferencia_edad/self.edad_max)
+                num_comparaciones += 1
+
+        # Devolver el puntaje normalizado 
+        return score/num_comparaciones if num_comparaciones > 0 else 1.0
+
+    def evaluar_AñoEscolar(self, info) -> float:
+        if len(info) == 1:
+            return 0.0
+
+        score = 0
+        num_comparaciones = 0
+
+        max_year = len(YEARS) - 1
+
+        for i in range(len(info)):
+            year1 = self.get_column_value(info[i], 'year_of_study')
+            for j in range(i + 1, len(info)):
+                year2 = self.get_column_value(info[j], 'year_of_study')
+                diferencia_year = abs(YEAR_TO_INDEX[year1] - YEAR_TO_INDEX[year2])
+                score += 1.0 - (diferencia_year / max_year)
+                num_comparaciones += 1
+
+        return score / num_comparaciones if num_comparaciones > 0 else 1.0
+
+    def evaluar_Intereses(self, info) -> float:
+        if len(info) == 1:
+            return 0.0
+
+        score = 0
+        total_intereses = 0
+
+        for i in range(len(info)):
+            intereses1 = self.get_column_value(info[i], 'interests')
+            for j in range(i + 1, len(info)):
+                intereses2 = self.get_column_value(info[j], 'interests')
+
+                intereses1 = set(intereses1)
+                intereses2 = set(intereses2)
+
+                inter = len(intereses1.intersection(intereses2))
+                if inter != 0:
+                    score += inter/len(intereses1.union(intereses2))
+            
+                total_intereses += 1
+            
+
+        # Devolver el puntaje normalizado
+        return score / total_intereses if total_intereses > 0 else 1.0
+
+    def evaluar_Universidad(self, info) -> float:
+        if len(info) == 1:
+            return 0.0
+
+        max = ['n', 0]
+        for i in range(len(info)):
+            uni1 = self.get_column_value(info[i], 'university')
+            act = [uni1, 1]
+            for j in range(i + 1, len(info)):
+                uni2 = self.get_column_value(info[j], 'university')
+                if uni1 == uni2:
+                    act[1] += 1
+            if max[1] < act[1]:
+                max = act
+        return max[1]/len(info)
+
+    def evaluar_Preferencia(self, info) -> float:
+        score = 0
+
+        if len(info) == 1:
+            return 0.0
+    
+        normalizar = 0
+        for i in range(len(info)):
+            preferencia1 = self.get_column_value(info[i], 'preferred_role')
+            for j in range(i + 1, len(info)):
+            
+                preferencia2 = self.get_column_value(info[j], 'preferred_role')
+                if preferencia1 not in INVALID_PREFERENCIA and preferencia2 not in INVALID_PREFERENCIA:
+                    if preferencia1 != preferencia2:
+                        score += 1
+                    normalizar += 1
+
+        return score / normalizar if normalizar > 0 else 1.0
+
+    def evaluar_Experiencia(self, info) -> float:
+        score = 0
+
+        if len(info) == 1:
+            return 0.0
+    
+        normalizar = 0
+
+        for i in range(len(info)):
+            experiencia1 = self.get_column_value(info[i], 'experience_level')
+            for j in range(i + 1, len(info)):
+                experiencia2 = self.get_column_value(info[j], 'experience_level')
+
+                if experiencia1 != experiencia2:
+                    score += 1
+            
+                normalizar += 1
+
+        return score/normalizar if normalizar > 0 else 1.0
+
+    def evaluar_Hackathons(self, info) -> float:
+        score = 0
+    
+        for i in range(len(info)):
+            hackathons = self.get_column_value(info[i], 'hackathons_done')
+            score += hackathons
+
+        return score/ (self.max_hackathons * len(info))
+
     def get_participant_info(self, id):
         return self.data.get(id, None)
 
@@ -143,6 +371,239 @@ class TeamFormation:
         if participant_info is None:
             return None
         return participant_info.get(column, None)
+
+    def SimilitudTextos(self, embedding1, embedding2) -> float:
+        return util.cos_sim(embedding1, embedding2).item()
+
+    def calculate_multiple_scores_with_parallelism(self, pairs):
+        with ThreadPoolExecutor() as executor:
+            scores = list(executor.map(lambda pair: self.SimilitudTextos(pair[0], pair[1]), pairs))
+
+        return scores
+
+    def evaluar_Textos(self, info, evaluar) -> float:
+
+        if len(info) < 2:
+            return 0.0
+        
+        pairs = []
+        for i in range(len(info)):
+            embedding1 = self.get_column_value(info[i], evaluar)
+            for j in range(i + 1, len(info)):
+                embedding2 = self.get_column_value(info[j], evaluar)
+
+                pairs.append([embedding1, embedding2])
+
+        scores = self.calculate_multiple_scores_with_parallelism(pairs)
+
+        return sum(scores) / len(scores)
+    
+    def evaluar_Idioma(self, info) -> float:
+        if len(info) == 1:
+            return 0.0  
+
+        idiomas_por_integrante = []
+    
+        for i in range(len(info)):
+            idiomas = self.get_column_value(info[i], 'preferred_languages')
+            if len(idiomas) != 0:  
+                idiomas_por_integrante.append(set(idiomas)) 
+
+        if not idiomas_por_integrante:  
+            return 0.0
+
+
+        idioma_comun = set.intersection(*idiomas_por_integrante) if idiomas_por_integrante else set()
+
+        num_con_idioma_comun = len(idioma_comun)
+        long = len(info)
+        if num_con_idioma_comun == long:  
+            return 1.0
+        elif num_con_idioma_comun == long - 1:
+            return 0.75
+        elif num_con_idioma_comun == long - 2:
+            return 0.5
+        elif num_con_idioma_comun == long - 3:
+            return 0.25
+        else:
+            return 0.0
+
+    def evaluar_Friend(self, info) -> float:
+        score = 0
+
+        if len(info) == 1:
+            return 0.0
+
+        tmb = len(info)
+        for i in range(tmb):
+            amigos1 = set(self.get_column_value(info[i], 'friend_registration'))
+            for j in range(i + 1, tmb):
+                integrante2 = self.get_column_value(info[j], 'id')
+                if integrante2 in amigos1:
+                    score += 1          
+    
+        return score / tmb if tmb > 0 else 1.0
+    
+    def evaluar_PreferedSize(self, info) -> float:
+        if len(info) == 1:
+            return 0.0
+
+        media = 0
+        for i in range(len(info)):
+            media += int(self.get_column_value(info[i], 'preferred_team_size'))
+
+        media = media / len(info)
+        diff = abs(media - len(info))
+        if diff == 0:
+            return 1.0
+    
+        return 1 - min(1, diff / media)
+    
+    def evaluar_Availability(self, info) -> float:
+        if len(info) == 1:
+            return 0.0
+
+        score = 0
+        total_comparaciones = 0
+
+        for i in range(len(info)):
+            disponibilidad1 = self.get_column_value(info[i], 'availability')
+            for j in range(i + 1, len(info)):
+                disponibilidad2 = self.get_column_value(info[j], 'availability')
+
+                if disponibilidad1 == disponibilidad2:
+                    score += 1
+
+                total_comparaciones += 1
+
+        return score / total_comparaciones if total_comparaciones > 0 else 1.0
+
+    def evaluar_Skills(self, info) -> float:
+        if not info:
+            return 0
+        
+        team_skills = []
+        for i in range(len(info)):
+            team_skills.append(self.get_column_value(info[i], 'programming_skills'))
+    
+        skill_counts = {}
+        skill_levels = {}
+    
+        for skills in team_skills:
+            for skill, level in skills.items():
+                skill_counts[skill] = skill_counts.get(skill, 0) + 1
+                skill_levels[skill] = max(skill_levels.get(skill, 0), level)
+    
+        total_skills = len(team_skills)
+        unique_skills = len(skill_counts)
+    
+        diversity_score = unique_skills / total_skills
+    
+        level_scores = [level / 10 for level in skill_levels.values()]
+        avg_level_score = sum(level_scores) / len(level_scores) if level_scores else 0
+    
+        final_score = (diversity_score * 0.6) + (avg_level_score * 0.4)
+    
+        return round(final_score, 2)
+    
+    def encontrar_mejores_equipos(self) -> List[tuple]:
+        
+    
+        cache_evaluaciones = {}
+    
+        def evaluar_con_cache(equipo):
+            equipo_tuple = tuple(sorted(equipo[0]))
+            if equipo_tuple not in cache_evaluaciones:
+                cache_evaluaciones[equipo_tuple] = self.toolbox.evaluate(equipo[0])
+            return cache_evaluaciones[equipo_tuple]
+
+        poblacion = []
+        used_teams = set()
+    
+        while len(poblacion) < TAM_POBLACION:
+            ind = self.toolbox.individual()
+            team_tuple = tuple(sorted(ind[0]))
+        
+            if team_tuple not in used_teams:
+                used_teams.add(team_tuple)
+                ind.fitness.values = evaluar_con_cache(ind)
+                poblacion.append(ind)
+
+        mejor_equipo = tools.selBest(poblacion, k=1)[0]
+        mejor_fitness = mejor_equipo.fitness.values[0]
+
+        mejores_equipos = set()
+        umbral_calidad = 0.7  
+
+        generaciones_sin_mejora = 0
+        max_generaciones_sin_mejora = 5
+
+        for gen in range(NUM_GENERACIONES):
+            if generaciones_sin_mejora >= max_generaciones_sin_mejora:
+                break
+
+            descendientes = self.toolbox.select(poblacion, len(poblacion))
+            descendientes = list(map(self.toolbox.clone, descendientes))
+
+            for i in range(0, len(descendientes), 2):
+                if i + 1 < len(descendientes):
+                    if rd.random() < PROB_CRUCE:
+                        hijo1, hijo2 = self.toolbox.mate(descendientes[i], descendientes[i+1])
+                        descendientes[i] = creator.Individual(hijo1)
+                        descendientes[i+1] = creator.Individual(hijo2)
+                        descendientes[i].fitness.values = evaluar_con_cache(descendientes[i])
+                        descendientes[i+1].fitness.values = evaluar_con_cache(descendientes[i+1])
+
+            for i in range(len(descendientes)):
+                if rd.random() < PROB_MUTACION:
+                    mutado = self.toolbox.mutate(descendientes[i])
+                    descendientes[i] = creator.Individual(mutado)
+                    descendientes[i].fitness.values = evaluar_con_cache(descendientes[i])
+
+            mejores_padres = tools.selBest(poblacion, k=5)
+            poblacion = descendientes
+            poblacion.extend(mejores_padres)
+            poblacion = tools.selBest(poblacion, k=TAM_POBLACION)
+
+            mejor_actual = tools.selBest(poblacion, k=1)[0]
+            if mejor_actual.fitness.values[0] > mejor_fitness:
+                mejor_equipo = mejor_actual
+                mejor_fitness = mejor_actual.fitness.values[0]
+                generaciones_sin_mejora = 0
+            else:
+                generaciones_sin_mejora += 1
+
+            for ind in poblacion:
+                if ind.fitness.values[0] >= umbral_calidad:
+                    equipo_tuple = tuple(sorted(ind[0]))
+                    mejores_equipos.add((equipo_tuple, ind[1]))
+
+                if len(mejores_equipos) >= self.num_Equipos * 2:
+                    break
+
+        mejores_equipos_lista = list(mejores_equipos)
+        mejores_equipos_lista.sort(
+            key=lambda x: cache_evaluaciones[tuple(sorted(x[0]))][0],
+            reverse=True
+        )
+
+        return mejores_equipos_lista[:self.num_Equipos]
+
+    def ejecutar_busqueda_equipos(self):
+        mejores_equipos = self.encontrar_mejores_equipos()
+    
+        print("\nMejores equipos encontrados:")
+        for i, (equipo, creado_por_usuario) in enumerate(mejores_equipos, 1):
+            fitness = self.toolbox.evaluate(equipo)[0]
+            print(f"\nEquipo {i} (Fitness: {fitness:.3f}):")
+            for id_miembro in equipo:
+                if id_miembro == self.id_Usuario:
+                    print(f"- {id_miembro} (Usuario objetivo)")
+                else:
+                    print(f"- {id_miembro}")
+        return mejores_equipos
+    
+
 
 def get_path(filename: str, tipo: str) -> str:
     if not filename.endswith(tipo):
@@ -178,11 +639,10 @@ if __name__ == "__main__":
         print(f"Tiempo de ejecución (inicialización de datos): {elapsed_time_ms:.2f} ms")
 
         start_time = time.time()
-        info = data.get_column_value(data.get_participant_info("2ebad15c-c0ef-4c04-ba98-c5d98403a90c"), "id")
-        print(info)
+        data.ejecutar_busqueda_equipos()
         end_time = time.time()
         elapsed_time_ms = (end_time - start_time) * 1000  
-        print(f"Tiempo de ejecución (get_Datos): {elapsed_time_ms:.2f} ms")
+        print(f"Tiempo de ejecución (ejecucion): {elapsed_time_ms:.2f} ms")
 
     except Exception as e:
         print(f"Error: {str(e)}")
