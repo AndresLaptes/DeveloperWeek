@@ -1,7 +1,7 @@
 import React from 'react';
-import MultipleSelector from './MultipleSelector';
-import SingleSelector from './SingleSelector';
-import "../styles/Forms.css"
+import MultipleSelector from '../UI/MultipleSelector';
+import SingleSelector from '../UI/SingleSelector';
+import "../../styles/Forms.css"
 const languagesList = [
     "Python", "JavaScript", "Java", "C", "C++", "C#", "Ruby",
     "PHP", "Swift", "Kotlin", "TypeScript", "Go", "Rust"

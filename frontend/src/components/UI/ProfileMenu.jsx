@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'; 
 import { TiUser } from "react-icons/ti";
 import { useState, useEffect, useRef } from "react";
-import '../styles/ProfileMenu.css';
-import defaultUser from "../assets/unlogged-profile.svg";
+import '../../styles/ProfileMenu.css';
+import defaultUser from "../../assets/unlogged-profile.svg";
 
 const ProfileMenu = ({children, initialIsLogged}) => {
     const [profileDropdown, setProfileDropdown] = useState(false);

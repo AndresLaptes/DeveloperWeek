@@ -1,5 +1,5 @@
 import React from 'react';
-import '../styles/LoginForm.css';
+import '../../styles/LoginForm.css';
 import { TiUser } from "react-icons/ti";
 import { TiLockClosed } from "react-icons/ti";
 

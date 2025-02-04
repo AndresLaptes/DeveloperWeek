@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'; //used for react router
 import '../styles/Header.css';
-import ProfileMenu from "./ProfileMenu"; 
+import ProfileMenu from "./UI/ProfileMenu"; 
 const Header = () => {
     return (
         <header className="header">

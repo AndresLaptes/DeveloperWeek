@@ -1,7 +1,7 @@
 import { useState } from "react";
-import PersonalInfoForm from "../components/PersonalInfoForm";
-import ParticipantInfoFormAcademic from "../components/ParticipantInfoFormAcademic";
-import ParticipantInfoFormTech from "../components/ParticipantInfoFormTech";
+import PersonalInfoForm from "../components/Forms/PersonalInfoForm";
+import ParticipantInfoFormAcademic from "../components/Forms/ParticipantInfoFormAcademic";
+import ParticipantInfoFormTech from "../components/Forms/ParticipantInfoFormTech";
 
 import "../styles/SignUp.css"
 

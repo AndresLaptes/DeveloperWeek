@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import FloatingCard from "./FloatingCard";
 
-import "../styles/FloatingCards.css";
+import "../../styles/FloatingCards.css";
 
 const cards = [
     {text: "Trending Hackathons", color: "black"},

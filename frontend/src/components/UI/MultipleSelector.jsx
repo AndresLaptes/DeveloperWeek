@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "../styles/MultipleSelector.css"
+import "../../styles/MultipleSelector.css"
 //value = {optionName, level of skill} -> level of skill by default is 1, but it can be modified for those with showSlider on true
 const MultipleSelector = ({ onChange, showSlider = true, values, selectorName }) => {
     const [selectedValues, setSelectedValues] = useState([]);

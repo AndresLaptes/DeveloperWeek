@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import "../styles/CustomButton.css"
+import "../../styles/CustomButton.css"
 const CustomButton = ({text, onClick, variant = 'primary', size = 'medium', disabled = false, className = '',}) => {
     const baseClass = `custom-button ${variant} ${size} ${className}`; //used to change styles based on it
     return (

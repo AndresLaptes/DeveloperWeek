@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import MultipleSelector from './MultipleSelector';
-import SingleSelector from './SingleSelector';
+import MultipleSelector from '../UI/MultipleSelector';
+import SingleSelector from '../UI/SingleSelector';
 
-import "../styles/Forms.css"
+import "../../styles/Forms.css"
 
 const languagesList = ["Spanish", "English"];
 

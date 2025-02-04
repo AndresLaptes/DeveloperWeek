@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { animate, useMotionValue, motion, useTransform } from "framer-motion";
-import FloatingCards from "../components/FloatingContainer";
-import CustomButton from "../components/CustomButton";
-import PreferencesForm from "../components/PreferencesForm/PreferencesForm";
+import FloatingCards from "../components/UI/FloatingContainer";
+import CustomButton from "../components/UI/CustomButton";
+import PreferencesForm from "../components/Forms/PreferencesForm";
 import "../styles/Home.css";
 
 const FloatingInfo = () => {

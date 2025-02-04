@@ -1,5 +1,5 @@
 import { animate, color, motion } from "framer-motion"
-import "../styles/FloatingCard.css"
+import "../../styles/FloatingCard.css"
 const FloatingCard = ({text, style, animate}) => {
     return (
         <motion.div className="floatingCard"
