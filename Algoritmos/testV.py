@@ -14,8 +14,8 @@ YEAR_TO_INDEX = {year: index for index, year in enumerate(YEARS)}
 INVALID_PREFERENCIA = set(["Don't know", "Don't care"])
 
 # Parámetros del algoritmo genético
-TAM_POBLACION = 30
-NUM_GENERACIONES = 15
+TAM_POBLACION = 50
+NUM_GENERACIONES = 50
 PROB_CRUCE = 0.7      # Probabilidad de cruce
 PROB_MUTACION = 0.2   # Probabilidad de mutación
 PONDERACIONES_TEST = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
