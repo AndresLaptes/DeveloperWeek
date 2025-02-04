@@ -1,8 +1,12 @@
 import express from "express";
-/**
- * @typedef {import("../models/User.js").default} UserModel
- */
 import { UserRepository } from "../repositories/userRepository.mjs";
+import jwt from 'jsonwebtoken'
+import dotenv from 'dotenv';
+import cookieParser from "cookie-parser";
+
+dotenv.config();
+
+
 
 const userRouter = express.Router();
 
@@ -28,8 +32,16 @@ userRouter.post("/login", async (req, res) => {
     const {email, password} = req.body;
     try {
         const userLogged = await UserRepository.loginUser({email,password});
+        const token = jwt.sign({id: userLogged._id, email: userLogged.email}, process.env.SECRET_JWT_WORD, {
+            expiresIn: '1h'
+        });
         console.log(userLogged);
-        res.status(200).json({succes: true, message: "Login correct"});
+        console.log(token);
+        res.cookie('access_token', token,  {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'lax',
+        }).status(200).json({success: true, message: "Login correct"});
     }
     catch (error) {
         console.error("Login error: ", error)

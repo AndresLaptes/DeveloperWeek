@@ -3,8 +3,13 @@ import '../../styles/LoginForm.css';
 import { TiUser } from "react-icons/ti";
 import { TiLockClosed } from "react-icons/ti";
 import axios from 'axios';
+import { useAuth } from '../Tools/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const LoginForm = () => {
+    const { login } = useAuth();
+    const navigate = useNavigate();
+
     const [email, setemail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -18,10 +23,14 @@ const LoginForm = () => {
             }, {
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                withCredentials: true
             });
-            if (response.data.success) {
+            if (response.status === 200 && response.data.success) {
+                
                 console.log("Login successfully:", response.data);
+            } else {
+                console.error("Login failed:", response.data);
             }
         } catch (error) {
             console.error("Error sending data:", error);
