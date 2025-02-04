@@ -19,30 +19,16 @@ const PersonalInfoForm = ({formData, setFormData}) => {
             <h2>Personal Information</h2>
             <div className='formGroupContainer'>
                 <div className="formGroup">
-                    <label htmlFor="fname">First Name:</label>
+                    <label htmlFor="username">Username:</label>
                     <input
                         type="text"
-                        id="fname"
-                        name="fname"
-                        value={formData.fname || ''}
+                        id="username"
+                        name="username"
+                        value={formData.username || ''}
                         onChange={handleChange}
                         required
                     />
                 </div>
-
-                <div className="formGroup">
-                    <label htmlFor="lname">Last Name:</label>
-                    <input
-                        type="text"
-                        id="lname"
-                        name="lname"
-                        value={formData.lname || ''}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
-
                 <div className="formGroup">
                     <label htmlFor="email">Email:</label>
                     <input
@@ -73,18 +59,6 @@ const PersonalInfoForm = ({formData, setFormData}) => {
                             
                         />
                     </div>
-                </div>
-
-                <div className="formGroup">
-                    <label htmlFor="username">Username:</label>
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        value={formData.username || ''}
-                        onChange={handleChange}
-                        required
-                    />
                 </div>
             </div>
         </div>

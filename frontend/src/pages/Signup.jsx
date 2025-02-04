@@ -3,6 +3,8 @@ import PersonalInfoForm from "../components/Forms/PersonalInfoForm";
 import ParticipantInfoFormAcademic from "../components/Forms/ParticipantInfoFormAcademic";
 import ParticipantInfoFormTech from "../components/Forms/ParticipantInfoFormTech";
 
+import axios from "axios";
+
 import "../styles/SignUp.css"
 
 const TOTAL_PAGES = 3;
@@ -13,8 +15,6 @@ const Signup = () => {
     const [currentPage, setPage] = useState(0);
     const [formData, setFormData] = useState({
         personal: {
-            fname: '',
-            lname: '',
             username: '',
             email: '',
             password: ''
@@ -63,9 +63,18 @@ const Signup = () => {
         }));
     }
 
-    const handleSubmit = () => {
-        console.log('Combined form data:', formData);
-        //backend code to send to BD
+    const handleSubmit = async () => {    
+        try {
+            const response = await axios.post("http://localhost:3000/user/register", formData, {
+                headers: {
+                    'Content-Type':  'application/json'
+                }
+            }
+        );
+            if (response.data.succes)console.log("Regis. successfully:", response.data);
+        } catch (error) {
+            console.error("Error sending data:", error);
+        }
     };
 
     return (
