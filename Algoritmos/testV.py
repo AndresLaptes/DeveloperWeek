@@ -14,12 +14,21 @@ YEAR_TO_INDEX = {year: index for index, year in enumerate(YEARS)}
 INVALID_PREFERENCIA = set(["Don't know", "Don't care"])
 
 # Parámetros del algoritmo genético
-TAM_POBLACION = 50
-NUM_GENERACIONES = 50
+TAM_POBLACION = 30
+NUM_GENERACIONES = 15
 PROB_CRUCE = 0.7      # Probabilidad de cruce
 PROB_MUTACION = 0.2   # Probabilidad de mutación
 PONDERACIONES_TEST = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
+
+    # Equipos -> todos los equipos disponibles, 1 equipo es una lista de los id de los participantes (lsit(list(String)))
+    # id_Usuario -> el usuario que busca equipo
+    # X_Equipos -> el número de equipos que hay que buscar
+    # Participantes -> los participantes del evento, la BD de usuarios con su info
+    # Ponderaciones -> dado es una lista de valores de 18 posiciones. Representa lo siguiente
+    # son los atributos de un participante (los importantes mirar excel) que si el valor es positivo se prioriza maximizar
+    # en caso contrario si es negativo se minimizara, cuando mayor sean en cada caso los numeros tanto positivos
+    # o negativos mayor prioridad tendran
 class TeamFormation:
     def __init__(self, Equipos, id_Usuario, Participantes, X_Equipos, Ponderaciones):
         self.Inicializacion(Equipos, id_Usuario, Participantes, X_Equipos, Ponderaciones)
@@ -253,7 +262,6 @@ class TeamFormation:
                 score += 1 - (diferencia_edad/self.edad_max)
                 num_comparaciones += 1
 
-        # Devolver el puntaje normalizado 
         return score/num_comparaciones if num_comparaciones > 0 else 1.0
 
     def evaluar_AñoEscolar(self, info) -> float:
@@ -296,8 +304,6 @@ class TeamFormation:
             
                 total_intereses += 1
             
-
-        # Devolver el puntaje normalizado
         return score / total_intereses if total_intereses > 0 else 1.0
 
     def evaluar_Universidad(self, info) -> float:
