@@ -4,7 +4,8 @@ import bcrypt from "bcrypt";
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
-    email: { type: String, required: true }
+    email: { type: String, required: true },
+    team: {type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null},
 });
 
 const userInfoSchema = new mongoose.Schema({
@@ -63,14 +64,43 @@ export class UserRepository {
             email,
             password: hashedPassword
         });
-
         await user.save();
-        return email;
+        
+        return user._id;
     }
 
-    static async associateUserInfo({academic, tech}) {
-
+    static async associateUserInfo(userId, {academic, tech}) {
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            throw new Error('invalid user ID');
+        }
+        const user = await User.findById(userId);
+        if (!user) {
+            throw new Error('user not found');
+        }
+        const userInfo = new UserInfo({
+            user: userId,
+            academic,
+            tech
+        });
+        await userInfo.save();
+        return userInfo;
     }
+
+    static async loginUser({email, password}) {
+
+        Validation.validateEmail(email);
+        const user = await User.findOne({email});
+        if (!user) throw new Error ('user does not exist');
+        const isPwCorrect = await bcrypt.compare(password, user.password);
+        if (!isPwCorrect) throw new Error ('incorrect password');
+
+        return {
+            username: user.username,
+            email: user.email,
+            team: user.team
+        };
+    };
+
 }
 
 class Validation {

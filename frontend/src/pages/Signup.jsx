@@ -64,10 +64,7 @@ const Signup = () => {
     }
 
     const handleSubmit = async () => {    
-        console.log("a");
         try {
-            console.log("a");
-
             const response = await axios.post("http://localhost:3000/user/register", formData, {
                 headers: {
                     'Content-Type':  'application/json'
