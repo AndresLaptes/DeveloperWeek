@@ -4,26 +4,30 @@ import "../../styles/ToggleButton.css"
 import { TiTick, TiTimes } from "react-icons/ti";
 
 
-const ToggleButton = ({onToggleCallback, initialIsToggled, showIcons}) => {
+const ToggleButton = ({onToggleCallback, initialIsToggled, showIcons = true, id = ''}) => {
     const [isToggled, setIsToggled] = useState(initialIsToggled);
 
-    const onToggle = ()  => {
+    const onToggle = (id)  => {
         setIsToggled(!isToggled);
-        onToggleCallback(!isToggled);
+        onToggleCallback(id,!isToggled);
     }
 
     return ( 
         <button
+            id = {id}
             className={`toggle-btn ${ isToggled ? 'toggled' : ''}`}
-            onClick={onToggle}
+            onClick={()  => {onToggle(id)}}
         >
           <div className="thumb"></div>
-          <div className="icon">
+          {
+            showIcons &&
+            <div className="icon">
               { isToggled 
                 ? <TiTick></TiTick>
                 : <TiTimes></TiTimes>
               }
           </div>
+          }
         </button>
      );
 }
@@ -33,6 +37,7 @@ ToggleButton.propTypes = {
     onToggleCallback: PropTypes.func.isRequired,
     initialIsToggled: PropTypes.bool,
     showIcons: PropTypes.bool,
+    id: PropTypes.string,
 };
 
 

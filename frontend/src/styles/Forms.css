@@ -15,6 +15,21 @@
     width: 100%;
 }
 
+.formGroup.vertical{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 0.7rem;
+}
+
+.formGroup.horizontal{
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    margin-bottom: 1.5rem;
+    justify-content: space-between;
+}
+
 .formGroup {
     display: flex;
     flex-direction: column;

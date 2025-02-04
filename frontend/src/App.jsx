@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Settings from "./pages/Settings"
 import Login from "./pages/Login"
 import Signup from "./pages/Signup"
+import TeamResults from "./pages/TeamResults";
 import "./App.css";
 
 
@@ -29,6 +30,7 @@ function App() {
             <Route path = "/Settings" element = {<Settings />} />
             <Route path = "/Login" element = {<Login />} />
             <Route path = "/Signup" element = {<Signup />} />
+            <Route path = "/TeamResults" element = {<TeamResults />} />
           </Routes>
         </main>
         <Footer className = "footer"/>

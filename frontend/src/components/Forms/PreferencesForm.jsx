@@ -1,51 +1,125 @@
 import "../../styles/Forms.css"
 import { useState } from "react";
-import Slider from 'react-slider';
+import PropTypes from 'prop-types';
 import ToggleButton from '../UI/ToggleButton';
 
 const MIN_AGE = 18;
 const MAX_AGE = 100;
 
-const PreferencesForm = () => {
+const MINIMIZE = -1;
+const MAXIMIZE = 1;
+
+const POSITION = {
+    studyYear: '1',
+    uni: '2',
+    expLvl: '5',
+    hackathons: '6',
+    languages: '10',
+    friends: '11'
+};
 
 
+const PreferencesForm = ({handleSubmit}) => {
 
-    const [ageRange,setAgeRange] = useState([MIN_AGE,MAX_AGE]);
-    const [sameYear, setSameYear] = useState(false);
+    const [preferenceVector, setPreferenceVector] = useState(
+        [1,-1,-1,1,1,-1,-1,1,1,1,-1,-1,1,1,1]);
     
-    const onToggleSameYear = (newSameYear) => {
-        setSameYear(newSameYear);
-        console.log(newSameYear);
+
+    const onToggleValue = (toggledValue, newValue) => {
+        const newVector = [...preferenceVector]
+        newVector[POSITION[toggledValue]] = ( newValue ? MAXIMIZE : MINIMIZE);
+        setPreferenceVector(newVector);
     }
 
     return ( 
     <div className="form-container">
         <h1>About your team</h1>
-        <div className="formGroup">
-            <label>Your teammates age should be between...</label>
-            <label>From {ageRange[0]} to {ageRange[1]}</label>
-            <Slider className={"slider"}
-                    onChange={setAgeRange}
-                    value={ageRange}
-                    min={MIN_AGE}
-                    max={MAX_AGE}
-            />
-        </div>
 
-        <div className="formGroup">
+        <div className={`formGroup ${'horizontal'}`}>
             <label>
-                Would you like to be paired with people 
-                of your same study year or close?
+                STUDY YEAR
             </label>
             <ToggleButton
-                onToggleCallback={onToggleSameYear}
-                initialIsToggled={sameYear}
+                id={"studyYear"}
+                onToggleCallback={onToggleValue}
+                initialIsToggled={false}
             >
             </ToggleButton>
         </div>
 
+        <div className={`formGroup ${'horizontal'}`}>
+            <label>
+                UNI
+            </label>
+            <ToggleButton
+                id={"uni"}
+                onToggleCallback={onToggleValue}
+                initialIsToggled={false}
+            >
+            </ToggleButton>
+        </div>
+
+        <div className={`formGroup ${'horizontal'}`}>
+            <label>
+               EXP LEVEL
+            </label>
+            <ToggleButton
+                id={"expLvl"}
+                onToggleCallback={onToggleValue}
+                initialIsToggled={false}
+            >
+            </ToggleButton>
+        </div>
+
+        <div className={`formGroup ${'horizontal'}`}>
+            <label>
+                SIMILAR NUMBER OF HACKATHONS
+            </label>
+            <ToggleButton
+                id={"hackathons"}
+                onToggleCallback={onToggleValue}
+                initialIsToggled={false}
+            >
+            </ToggleButton>
+        </div>
+
+        <div className={`formGroup ${'horizontal'}`}>
+            <label>
+                INTERNATIONAL
+            </label>
+            <ToggleButton   
+                id={"languages"}
+                onToggleCallback={onToggleValue}
+                initialIsToggled={false}
+            >
+            </ToggleButton>
+        </div>
+
+        <div className={`formGroup ${'horizontal'}`}>
+            <label>
+                FRIENDS
+            </label>
+            <ToggleButton
+                id={"friends"}
+                onToggleCallback={onToggleValue}
+                initialIsToggled={false}
+            >
+            </ToggleButton>
+        </div>
+
+        <button
+            onClick={handleSubmit}
+        >
+            Match!
+        </button>
+
 
     </div> );
 }
- 
+
+PreferencesForm.propTypes = {
+    handleSubmit: PropTypes.func.isRequired,
+}
+
+
 export default PreferencesForm;

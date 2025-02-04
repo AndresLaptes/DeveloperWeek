@@ -3,6 +3,7 @@ import { animate, useMotionValue, motion, useTransform } from "framer-motion";
 import FloatingCards from "../components/UI/FloatingContainer";
 import CustomButton from "../components/UI/CustomButton";
 import PreferencesForm from "../components/Forms/PreferencesForm";
+import TeamResults from "./TeamResults";
 import "../styles/Home.css";
 
 const FloatingInfo = () => {
@@ -23,36 +24,51 @@ const Counter = ({nTeams}) => {
 
 const Home = ({props}) => {
     const [displayForm, setDisplayForm] = useState(false); //false -> floating info, true -> form for searching team
+    const [displayResults, setDisplayResults] = useState(false);
+
+    const handleMatchTeams = () => {
+        setDisplayResults(!displayResults);
+    }
+    
     return (
         <>
-            <div className="homeContainer">
-                <div className="homeLeft">
-                    <CustomButton
-                        className="matchTeamButton"
-                        text="Match with a team"
-                        variant="primary"
-                        size="xl"
-                        onClick={setDisplayForm}
-                        disabled = {false}
-                     />
-                    <p>or</p>
-                    <CustomButton
-                        className="createButton"
-                        text="CREATE ONE"
-                        variant="primary"
-                        size="large"
-                        onClick={setDisplayForm}
-                        disabled = {false}
+            {
+                displayResults
+                ?
+                <div className="homeContainer">
+                    <TeamResults> </TeamResults>
+                </div>
+                :
+                <div className="homeContainer">
+                    <div className="homeLeft">
+                        <CustomButton
+                            className="matchTeamButton"
+                            text="Match with a team"
+                            variant="primary"
+                            size="xl"
+                            onClick={setDisplayForm}
+                            disabled = {false}
                         />
-                    <div className= "teamCounterContainer">
-                        <p>Current Teams in X Hackathon</p>
-                        <Counter nTeams= {100}/>
+                        <p>or</p>
+                        <CustomButton
+                            className="createButton"
+                            text="CREATE ONE"
+                            variant="primary"
+                            size="large"
+                            onClick={setDisplayForm}
+                            disabled = {false}
+                            />
+                        <div className= "teamCounterContainer">
+                            <p>Current Teams in X Hackathon</p>
+                            <Counter nTeams= {100}/>
+                        </div>
+                    </div>
+                    <div className="homeRight">
+                        {displayForm ? <PreferencesForm handleSubmit={handleMatchTeams}/> : <FloatingCards/>}
                     </div>
                 </div>
-                <div className="homeRight">
-                    {displayForm ? <PreferencesForm /> : <FloatingCards/>}
-                </div>
-            </div>
+            }
+            
         </>
     )
 }
