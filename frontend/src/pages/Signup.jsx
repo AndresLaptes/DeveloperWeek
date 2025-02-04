@@ -15,8 +15,6 @@ const Signup = () => {
     const [currentPage, setPage] = useState(0);
     const [formData, setFormData] = useState({
         personal: {
-            fname: '',
-            lname: '',
             username: '',
             email: '',
             password: ''
