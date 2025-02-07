@@ -1,3 +1,7 @@
+""" 
+    Codigo donde recibimos el JSON y encontramos los mejores equipos para el usuario objetivo
+"""
+
 from pathlib import Path
 import numpy as np
 import time
@@ -20,7 +24,6 @@ PROB_CRUCE = 0.7      # Probabilidad de cruce
 PROB_MUTACION = 0.2   # Probabilidad de mutación
 PONDERACIONES_TEST = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
-
     # Equipos -> todos los equipos disponibles, 1 equipo es una lista de los id de los participantes (lsit(list(String)))
     # id_Usuario -> el usuario que busca equipo
     # X_Equipos -> el número de equipos que hay que buscar
@@ -30,8 +33,19 @@ PONDERACIONES_TEST = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     # en caso contrario si es negativo se minimizara, cuando mayor sean en cada caso los numeros tanto positivos
     # o negativos mayor prioridad tendran
 class TeamFormation:
+    """
+    Clase que busca los mejores equipos con mejor compatibilidad para un usuario objetivo.
+    
+    :param Equipos: Lista de equipos existentes.
+    :param id_Usuario: ID del usuario que busca equipo.
+    :param Participantes: Base de datos de participantes.
+    :param X_Equipos: Número de equipos a buscar.
+    :param Ponderaciones: Lista con valores de ponderación para los atributos del usuario.
+    """
     def __init__(self, Equipos, id_Usuario, Participantes, X_Equipos, Ponderaciones):
-        self.Inicializacion(Equipos, id_Usuario, Participantes, X_Equipos, Ponderaciones)
+        """Inicializa la clase y configura DEAP para la optimización genética."""
+        EquiposEstructurados = self.PreparacionEquipos(Equipos)
+        self.Inicializacion(EquiposEstructurados, id_Usuario, Participantes, X_Equipos, Ponderaciones)
         try:
             creator.create("FitnessMax", base.Fitness, weights=(1.0,))
             creator.create("Individual", tuple, fitness=creator.FitnessMax)
@@ -42,9 +56,21 @@ class TeamFormation:
 
         except Exception as e:
             print("Error al procesar el archivo:", e)
+    
+    def PreparacionEquipos (self, Equipos):
+        ListadoEquipos = []
 
+        for equipo in Equipos:
+            NewEquipo = []
+            for participante in equipo["members"]:
+                NewEquipo.append(participante["id"])
+            ListadoEquipos.append(NewEquipo)
+
+        return ListadoEquipos
+    
     def Inicializacion(self, Equipos, id_Usuario, Participantes, X_Equipos, Ponderaciones):
-        self.Equipos = np.array(Equipos, dtype=object)
+        """Prepara los datos y filtra equipos válidos."""
+        self.Equipos = Equipos
         self.id_Usuario = id_Usuario
 
 
@@ -75,6 +101,7 @@ class TeamFormation:
                 self.max_hackathons = hack
 
     def crearIndividuo(self) -> tuple:
+        """Genera un individuo aleatorio (equipo) para el algoritmo genético."""
         creado_por_usuario = True
 
         # Crear equipo nuevo con 1-3 miembros aleatorios + usuario objetivos
@@ -82,7 +109,7 @@ class TeamFormation:
         if len(self.EquiposValidos) != 0:
             otros_usuarios = [
                 id for id in self.idParticipantes 
-                if id != self.id_Usuario and id not in self.EquiposValidos
+                if id != self.id_Usuario and not any(id in equipo for equipo in self.EquiposValidos)
             ]
         else: 
             otros_usuarios = self.idParticipantes
@@ -144,7 +171,7 @@ class TeamFormation:
         available_users = [
             id for id in self.idParticipantes 
             if id != self.id_Usuario and 
-            id not in self.EquiposValidos and 
+            not any(id in equipo for equipo in self.EquiposValidos) and 
             id not in team_ids
         ]
     
@@ -198,6 +225,7 @@ class TeamFormation:
         return selected
 
     def evaluarEquipo(self, equipo: tuple) -> tuple:
+        """Evalúa la compatibilidad de un equipo."""
         usuario = self.id_Usuario
         team = list()
 
@@ -513,8 +541,6 @@ class TeamFormation:
         return round(final_score, 2)
     
     def encontrar_mejores_equipos(self) -> List[tuple]:
-        
-    
         cache_evaluaciones = {}
     
         def evaluar_con_cache(equipo):
@@ -588,6 +614,15 @@ class TeamFormation:
                     break
 
         mejores_equipos_lista = list(mejores_equipos)
+        
+        for equipo in self.Equipos:
+            aux = equipo
+            aux.append(self.id_Usuario)
+            individuo = (aux, True)
+            individuo = evaluar_con_cache(individuo)
+            equipo_tuple = tuple(sorted(ind[0]))
+            mejores_equipos.add((equipo_tuple, ind[1]))
+
         mejores_equipos_lista.sort(
             key=lambda x: cache_evaluaciones[tuple(sorted(x[0]))][0],
             reverse=True
@@ -597,17 +632,21 @@ class TeamFormation:
 
     def ejecutar_busqueda_equipos(self):
         mejores_equipos = self.encontrar_mejores_equipos()
-    
+
+        Lista = []
         print("\nMejores equipos encontrados:")
         for i, (equipo, creado_por_usuario) in enumerate(mejores_equipos, 1):
+            Aux = []
             fitness = self.toolbox.evaluate(equipo)[0]
             print(f"\nEquipo {i} (Fitness: {fitness:.3f}):")
             for id_miembro in equipo:
+                Aux.append(id_miembro)
                 if id_miembro == self.id_Usuario:
                     print(f"- {id_miembro} (Usuario objetivo)")
                 else:
                     print(f"- {id_miembro}")
-        return mejores_equipos
+            Lista.append(Aux)
+        return Lista
     
 
 
@@ -625,6 +664,7 @@ def get_path(filename: str, tipo: str) -> str:
     return file_path
 
 path = get_path("output", "json")
+pathEquipos = get_path("team_looking_for_people", "json")
 
 if __name__ == "__main__":
     try:
@@ -633,12 +673,15 @@ if __name__ == "__main__":
         with open(path, "rb") as f:
             datos = orjson.loads(f.read())
 
+        with open(pathEquipos, "rb") as f:
+            Equipos = orjson.loads(f.read())
+
         end_time = time.time()
         elapsed_time_ms = (end_time - start_time) * 1000  
         print(f"Tiempo de ejecución (cargar JSON): {elapsed_time_ms:.2f} ms")
         
         start_time = time.time()
-        data = TeamFormation([], "2ebad15c-c0ef-4c04-ba98-c5d98403a90c", datos, 5, PONDERACIONES_TEST)
+        data = TeamFormation(Equipos, "2ebad15c-c0ef-4c04-ba98-c5d98403a90c", datos, 10, PONDERACIONES_TEST)
 
         end_time = time.time()
         elapsed_time_ms = (end_time - start_time) * 1000  
